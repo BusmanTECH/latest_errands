@@ -17,11 +17,11 @@ export class Vehicle {
   @Column()
   vehicleType: string;
 
-  @Column()
-  vehicleBrand: string;
+  @Column({ nullable: true })
+  vehicleBrand?: string;
 
-  @Column()
-  vehicleYear: string;
+  @Column({ nullable: true })
+  vehicleYear?: string;
 
   @Column()
   vehicleColor: string;

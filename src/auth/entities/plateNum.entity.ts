@@ -6,7 +6,7 @@ import { User } from './user.entity';
 @Entity()
 export class plateNum extends AbstractFileEntity<plateNum> {
 
-    @OneToOne(() => User, (user) => user.plateNum_img, { onDelete: 'CASCADE' })
+    @OneToOne(() => User, (user) => user.plateNumberImage, { onDelete: 'CASCADE' })
     @JoinColumn()
     user: User;
 

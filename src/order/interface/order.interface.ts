@@ -1,0 +1,41 @@
+export interface Order {
+    readonly id: string;
+    scope: string;
+    vehicle: string;
+    packageType: string;
+    pickupLocation: any;
+    deliveryLocation: any;
+    pickupCoordinates: string; // PostGIS geometry string format: "POINT(lng lat)"
+    deliveryCoordinates: string; // PostGIS geometry string format: "POINT(lng lat)"
+    closeLandmark: string;
+    deliveryType: string;
+    shippingType: string;
+    receiverDetails: any;
+    pickupDetails: any;
+    status: string;
+    paymentStatus: string;
+    paymentMethod: string;
+    instruction: string;
+    scheduledPickupTime?: string;
+    description: string;
+    packageSize: string;
+    images: string[];
+    amount: number;
+    distance: number;
+    charge: number;
+    trackingCode: string;
+    driverId: string;
+    userId: string;
+    eta: number;
+    pickupTime: Date;
+    deliveryTime: Date;
+    acceptTime: Date;
+    startTime: Date;
+    completeTime: Date;
+    cancelTime: Date;
+    cancelledAt: Date;
+    paymentReference: string;
+    paidAt: Date;
+    readonly createdAt: Date;
+    readonly updatedAt: Date;
+}

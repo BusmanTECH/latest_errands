@@ -10,33 +10,36 @@ import { User } from './entities/user.entity';
 import { Card } from './entities/card.entity';
 import { DiverLicense } from './entities/license.entity';
 import { Nin } from './entities/nin';
-import { LocationDrive } from '../trip/entities/location_drive';
 import { Vehicle } from './entities/vehicle.entity';
 import { ProfileImage } from './entities/profile.entity';
 import { plateNum } from './entities/plateNum.entity';
 import { LicenseImg } from './entities/licenseImg.entity';
 import { VehicleReg } from './entities/VehicleReg.entity';
-import { RidesModule } from 'src/rides/rides.module';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './jwt.strategy';
+import { MailModule } from 'src/mail/mail.module';
 
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Card, DiverLicense, Nin, LocationDrive, Vehicle, ProfileImage, plateNum, LicenseImg, VehicleReg, ]),
+    TypeOrmModule.forFeature([User, Card, DiverLicense, Nin, Vehicle, ProfileImage, plateNum, LicenseImg, VehicleReg, ]),
     ConfigModule,
     HttpModule, // Add HttpModule here
-    RidesModule,
+    MailModule,
+    PassportModule.register({ defaultStrategy: 'jwt', session: false }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('ACCESS_TOKEN'),
-        signOptions: { expiresIn: '60s' },
+        // No expiration - tokens will not expire
+        signOptions: {},
       }),
       inject: [ConfigService],
     }),
   ],
-  exports: [TypeOrmModule, HttpModule,  AuthService, JwtModule], // Export HttpModule if needed in other modules
+  exports: [TypeOrmModule, HttpModule,  AuthService, JwtModule, PassportModule], // Export HttpModule if needed in other modules
   controllers: [AuthController],
-  providers: [AuthService, JwtModule], // Remove HttpService from providers
+  providers: [AuthService, JwtModule, JwtStrategy], // Remove HttpService from providers
 })
 export class AuthModule {}
 

@@ -5,13 +5,11 @@ import { User } from './user.entity';
 
 @Entity()
 export class ProfileImage extends AbstractFileEntity<ProfileImage> {
+  @OneToOne(() => User, (user) => user.profileImage, { onDelete: 'CASCADE' })
+  @JoinColumn()
+  user: User;
 
-
-    @OneToOne(() => User, (user) => user.Profile_img, { onDelete: 'CASCADE' })
-    @JoinColumn()
-    user: User;
-    
-    constructor(profileImage: Partial<ProfileImage>) {
-        super(profileImage);
-    }
+  constructor(profileImage: Partial<ProfileImage>) {
+    super(profileImage);
+  }
 }

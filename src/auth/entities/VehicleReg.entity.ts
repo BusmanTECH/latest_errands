@@ -7,7 +7,7 @@ import { User } from './user.entity';
 export class VehicleReg extends AbstractFileEntity<VehicleReg> {
 
 
-    @OneToOne(() => User, (user) => user.vehicle_reg_image, { onDelete: 'CASCADE' })
+    @OneToOne(() => User, (user) => user.vehicleRegImage, { onDelete: 'CASCADE' })
     @JoinColumn()
     user: User;
 

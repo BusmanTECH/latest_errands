@@ -4,12 +4,11 @@ import { WebSocketGateway, WebSocketServer, OnGatewayConnection, ConnectedSocket
 import { Server, Socket } from 'socket.io';
 import { SocketAuth } from './socket-auth.util';
 import { SocketEmitter } from './socket-emitter.service';
-import { RidesService } from 'src/rides/rides.service';
 
 @WebSocketGateway({ namespace: '/ws/delivery_request', cors: { origin: '*', credentials: true } })
 export class DeliveryRequestGateway implements OnGatewayConnection {
   @WebSocketServer() server: Server;
-  constructor(private auth: SocketAuth, private emitter: SocketEmitter, private rides: RidesService) {}
+  constructor(private auth: SocketAuth, private emitter: SocketEmitter) {}
   afterInit() { this.emitter.setServers({ deliveryReq: this.server }); }
 
   handleConnection(client: Socket) {
@@ -24,11 +23,7 @@ export class DeliveryRequestGateway implements OnGatewayConnection {
   async respond(@ConnectedSocket() client: Socket, @MessageBody() body: { orderId: string; decision: 'ACCEPT'|'REJECT'; reason?: string }) {
     const riderId = client.data?.user?.sub;
     if (!riderId) throw new WsException('unauth');
-    if (body.decision === 'ACCEPT') {
-      await this.rides.assignDriverByOrderId(body.orderId, riderId);  // helper we add below
-      await this.rides.driverAcceptByOrderId(body.orderId, riderId);
-    } else {
-      await this.rides.driverRejectByOrderId(body.orderId, riderId);
-    }
+    // TODO: Implement order/ride acceptance/rejection logic
+    // Removed RidesService dependency - functionality needs to be reimplemented
   }
 }

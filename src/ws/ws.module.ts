@@ -6,11 +6,8 @@ import { DeliveryGateway } from './delivery.gateway';
 import { DeliveryRequestGateway } from './delivery-request.gateway';
 import { CustomerLastLocation } from './entities/customer-last-location.entity';
 import { OrderTrack } from './entities/order-track.entity';
-import { Ride } from 'src/rides/entities/ride.entity';
-import { Order } from 'src/orders/entities/order.entity';
 import { SocketEmitter } from './socket-emitter.service';
 import { SocketAuth } from './socket-auth.util';
-import { RidesModule } from 'src/rides/rides.module'; // export RidesService from there
 import { AuthModule } from 'src/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 
@@ -18,8 +15,7 @@ import { ConfigModule } from '@nestjs/config';
   imports: [
      ConfigModule,
     AuthModule, 
-    TypeOrmModule.forFeature([Ride, Order, CustomerLastLocation, OrderTrack]),
-    RidesModule,
+    TypeOrmModule.forFeature([CustomerLastLocation, OrderTrack]),
   ],
   providers: [DeliveryGateway, DeliveryRequestGateway, SocketEmitter, SocketAuth],
   exports: [SocketEmitter],

@@ -1,37 +1,41 @@
 /* eslint-disable prettier/prettier */
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    OneToOne,
-    JoinColumn,
-    OneToMany,
-    ManyToMany,
-    JoinTable
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Card } from './card.entity';
-import {  Nin} from './nin';
+import { Nin } from './nin';
 
 import { DiverLicense } from './license.entity';
 import { Exclude, instanceToPlain } from 'class-transformer';
-import { LocationDrive } from '../../trip/entities/location_drive';
 import { Vehicle } from './vehicle.entity';
 import { VehicleReg } from './VehicleReg.entity';
 import { ProfileImage } from './profile.entity';
 import { plateNum } from './plateNum.entity';
 import { LicenseImg } from './licenseImg.entity';
-import { Trip } from '../../trip/entities/trip.entity';
-import { Order } from 'src/orders/entities/order.entity';
-import { Ride } from 'src/rides/entities/ride.entity';
-import { DriverEarning } from 'src/rides/entities/driverEarnings.entity';
-import { WithdrawalRequest } from 'src/rides/entities/withdrawalRequest.entity';
+import { Wallet } from '../../wallet/entities/wallet.entity';
 
 export enum UserRole {
-    ADMIN = "admin",
-    USER = "user",
-    CUSTOMER = 'customer',
+  ADMIN = 'admin',
+  USER = 'user',
+  CUSTOMER = 'customer',
   RIDER = 'rider',
+}
+export enum PaymentMethod {
+  CASH = 'cash',
+  CARD = 'card',
+}
+export enum GenderType {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
 }
 // export enum UserRole {
 //   ADMIN = 'ADMIN',
@@ -39,136 +43,168 @@ export enum UserRole {
 //   RIDER = 'RIDER',
 // }
 
-
 @Entity()
 export class User {
-    @PrimaryGeneratedColumn("uuid")
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column({type : 'varchar',  length: 140, unique : true, nullable: false})
-    phoneNumber: string;
+  @Column({ type: 'varchar', length: 140, unique: true, nullable: false })
+  phoneNumber: string;
 
-    @Column({ type: 'varchar', length: 140, unique : true, nullable: false })
-    email: string;
+  @Column({ type: 'varchar', length: 140, unique: true, nullable: false })
+  email: string;
 
-    @Column({ type: 'varchar', nullable: false  })
-    @Exclude() 
-    password?: string;
+  @Column({ type: 'varchar', nullable: false })
+  @Exclude()
+  password?: string;
 
-    @Column({type: 'varchar', nullable : true})
-    fname?: string;
+  @Column({ type: 'varchar', nullable: false })
+  firstName?: string;
 
-    @Column({type: 'varchar', nullable : true})
-    lname?: string;
+  @Column({ type: 'varchar', nullable: false })
+  lastName?: string;
 
-    @Column({type: 'varchar', nullable : true})
-    rememberToken?: string;
-    
-    @Column({ type: 'decimal', precision: 10, scale: 6, nullable:true })
-    lat: number;
-    
-    @Column({ type: 'decimal', precision: 10, scale: 6, nullable:true })
-    long: number;
+  @Column({ type: 'varchar', nullable: true })
+  gender?: string;
 
-    @Column({
-        type: "enum",
-        enum: UserRole,
-        default: UserRole.USER, nullable: false })
-    role: UserRole;
+  @Column({ type: 'date', nullable: true })
+  birthDate?: string;
 
-    @Column({ type: 'boolean', nullable: true, default: false })
-    isRider?: boolean;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+    nullable: false,
+  })
+  role: UserRole;
 
-    @Column({ type: 'varchar', default: 'english', nullable: false })
-    language: string;
-    
-    @OneToOne(() => Card, { cascade: true, nullable: true, onUpdate: 'CASCADE', onDelete: 'CASCADE' })
-    @JoinColumn()
-    card?: Card;
+  @Column({ type: 'boolean', default: false })
+  isEmailVerified: boolean;
 
-    @OneToOne(() => DiverLicense, (driverLicense) => driverLicense.user, { cascade: true, nullable: true, onDelete: 'SET NULL' })
-    @JoinColumn()
-    driverLicense?: DiverLicense;
-    
-    @OneToOne(() => Nin, (nin) => nin.user, { cascade: true, nullable: true, onDelete: 'SET NULL' })
-    @JoinColumn()
-    nin?: Nin;
-    
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  emailVerificationOtpHash?: string | null;
 
-    @OneToOne(() => LocationDrive, (location) => location.user, { cascade: true, nullable: true, onDelete: 'SET NULL' })
-    @JoinColumn()
-    @Exclude() 
-    location_drive: LocationDrive;   
+  @Column({ type: 'timestamp', nullable: true })
+  emailVerificationOtpExpiresAt?: Date | null;
 
-    // One-to-One relationship with Vehicle
-    @OneToOne(() => Vehicle, (vehicle) => vehicle.user, {
-        cascade: true,
-        nullable: true,
-        onDelete: 'SET NULL',
-    })
-    @JoinColumn()
-    vehicle?: Vehicle;
-    
-   
-    @OneToOne(() => VehicleReg, (vehicleImage) => vehicleImage.user, {
-        cascade: true,
-        nullable: true,
-      })
-      @JoinColumn()
-      vehicle_reg_image?: VehicleReg;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  passwordResetOtpHash?: string | null;
 
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetOtpExpiresAt?: Date | null;
 
-    @OneToOne(() => ProfileImage, (profileImage) => profileImage.user, {
-        cascade: true,
-        nullable: true,
-      })
-      @JoinColumn()
-      Profile_img?: ProfileImage;
-      
+  @Column({
+    type: 'decimal',
+    precision: 3,
+    scale: 2,
+    default: 4,
+    nullable: false,
+  })
+  averageRating: number;
 
-    @OneToOne(() => plateNum, (plateImage) => plateImage.user, {
-        cascade: true,
-        nullable: true,
-    })
-    @JoinColumn()
-    plateNum_img?: plateNum;
+  @Column({ type: 'boolean', default: false })
+  isOnline: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isApproved: boolean;
+  @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.CASH })
+  defaultPaymentMethod: PaymentMethod;
 
-    @OneToOne(() => LicenseImg, (licenseImage) => licenseImage.user, {
-        cascade: true,
-        nullable: true,
-      })
-      @JoinColumn()
-      licenseImg?: LicenseImg;
-    
-      @OneToMany(() => Trip, trip => trip.user)
-        trips: Trip[];
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    nullable: false,
+  })
+  totalEarnings: number;
 
-    @OneToMany(() => Order, (order) => order.user, { cascade: true })
-    orders: Order[];
+  @Column({ type: 'integer', default: 0, nullable: false })
+  deliveriesCount: number;
 
-    @OneToMany(() => Ride, (ride) => ride.user)
-    rides: Ride[];
+  @Column({ type: 'timestamp', nullable: true })
+  deletedAt?: Date | null;
 
-    @OneToMany(() => Ride, (ride) => ride.driver)
-    drivenRides: Ride[];
+  @Column({ type: 'text', nullable: true })
+  deletedReason?: string | null;
 
-    @OneToMany(() => DriverEarning, (earning) => earning.driver)
-    driverEarnings: DriverEarning[];
+  @Column({ type: 'uuid', nullable: true })
+  deletedBy?: string | null;
 
-    // One-to-Many relationship with WithdrawalRequest
-  @OneToMany(() => WithdrawalRequest, (withdrawalRequest) => withdrawalRequest.driver)
-  withdrawalRequests: WithdrawalRequest[];  // This will hold the list of withdrawal requests for this user
+  @OneToOne(() => Card, {
+    cascade: true,
+    nullable: true,
+    onUpdate: 'CASCADE',
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn()
+  card?: Card;
 
+  @OneToOne(() => DiverLicense, (driverLicense) => driverLicense.user, {
+    cascade: true,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn()
+  driverLicense?: DiverLicense;
 
-    toJSON() {
-        return instanceToPlain(this, { excludePrefixes: ['_'] });
-    }
+  @OneToOne(() => Nin, (nin) => nin.user, {
+    cascade: true,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn()
+  nin?: Nin;
 
+  // One-to-One relationship with Vehicle
+  @OneToOne(() => Vehicle, (vehicle) => vehicle.user, {
+    cascade: true,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn()
+  vehicle?: Vehicle;
 
-    constructor(user :Partial<User>){
-        Object.assign(this, user)
-    }
-   
+  @OneToOne(() => VehicleReg, (vehicleImage) => vehicleImage.user, {
+    cascade: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  vehicleRegImage?: VehicleReg;
+
+  @OneToOne(() => ProfileImage, (profileImage) => profileImage.user, {
+    cascade: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  profileImage?: ProfileImage;
+
+  @OneToOne(() => plateNum, (plateImage) => plateImage.user, {
+    cascade: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  plateNumberImage?: plateNum;
+
+  @OneToOne(() => LicenseImg, (licenseImage) => licenseImage.user, {
+    cascade: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  licenseImage?: LicenseImg;
+
+  @OneToOne(() => Wallet, (wallet) => wallet.user, {
+    cascade: true,
+    nullable: true,
+  })
+  @JoinColumn()
+  wallet?: Wallet;
+
+  toJSON() {
+    return instanceToPlain(this, { excludePrefixes: ['_'] });
+  }
+
+  constructor(user: Partial<User>) {
+    Object.assign(this, user);
+  }
 }
-
