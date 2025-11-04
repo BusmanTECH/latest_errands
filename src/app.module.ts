@@ -40,6 +40,9 @@ import { CardModule } from './card/card.module';
 import { NotificationModule } from './notification/notification.module';
 import { Notification } from './notification/entities/notification.entity';
 import { PushToken } from './notification/entities/push-token.entity';
+import { RatingsModule } from './ratings/ratings.module';
+import { Rating } from './ratings/entities/rating.entity';
+import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
 // import { RealtimeModule } from './realtime/realtime.module';
 // import { OrdersFacadeModule } from './orders-facade/orders-facade.module';
 
@@ -81,6 +84,8 @@ import { PushToken } from './notification/entities/push-token.entity';
           Location,
           Notification,
           PushToken,
+          Rating,
+          WithdrawalRequest,
         ],
         synchronize: true,
         // Connection pool configuration
@@ -112,6 +117,7 @@ import { PushToken } from './notification/entities/push-token.entity';
     OrderModule,
     CardModule,
     NotificationModule,
+    RatingsModule,
     // RealtimeModule,
     // OrdersFacadeModule
   ],

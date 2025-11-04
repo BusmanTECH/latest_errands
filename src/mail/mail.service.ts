@@ -10,6 +10,9 @@ import { buildOrderAcceptedEmailTemplate } from './templates/order-accepted.temp
 import { buildOrderStartedEmailTemplate } from './templates/order-started.template';
 import { buildOrderCompletedEmailTemplate } from './templates/order-completed.template';
 import { buildOrderRejectedEmailTemplate } from './templates/order-rejected.template';
+import { buildWithdrawalRequestEmailTemplate } from './templates/withdrawal-request.template';
+import { buildWithdrawalApprovedEmailTemplate } from './templates/withdrawal-approved.template';
+import { buildWithdrawalRejectedEmailTemplate } from './templates/withdrawal-rejected.template';
 
 @Injectable()
 export class MailService {
@@ -180,7 +183,9 @@ export class MailService {
   ): Promise<void> {
     try {
       if (!rider?.email) {
-        this.logger.warn('Rider email not found, skipping order assigned email');
+        this.logger.warn(
+          'Rider email not found, skipping order assigned email',
+        );
         return;
       }
       const { html, text, preheader } = buildOrderAssignedEmailTemplate(
@@ -403,13 +408,113 @@ export class MailService {
         },
       });
 
-      this.logger.log(`Receipt email sent to ${user.email} for order ${order.trackingCode || order.id}`);
+      this.logger.log(
+        `Receipt email sent to ${user.email} for order ${order.trackingCode || order.id}`,
+      );
     } catch (error: any) {
       this.logger.error(
         'Error sending receipt email:',
         error?.response?.data || error?.message || error,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Send withdrawal request email to user
+   */
+  async sendWithdrawalRequestEmail(
+    withdrawalRequest: any,
+    user: any,
+  ): Promise<void> {
+    try {
+      if (!user?.email) {
+        this.logger.warn(
+          'User email not found, skipping withdrawal request email',
+        );
+        return;
+      }
+      const { html, text, preheader } = buildWithdrawalRequestEmailTemplate(
+        this.fromName,
+        withdrawalRequest,
+        user,
+      );
+      await this.sendEmail(
+        user.email,
+        `Withdrawal Request Submitted - ${withdrawalRequest.id?.substring(0, 8).toUpperCase() || 'N/A'}`,
+        html,
+        text,
+        preheader,
+        'withdrawal-request',
+      );
+    } catch (error) {
+      this.logger.error('Error sending withdrawal request email:', error);
+    }
+  }
+
+  /**
+   * Send withdrawal approved email to user
+   */
+  async sendWithdrawalApprovedEmail(
+    withdrawalRequest: any,
+    user: any,
+  ): Promise<void> {
+    try {
+      if (!user?.email) {
+        this.logger.warn(
+          'User email not found, skipping withdrawal approved email',
+        );
+        return;
+      }
+      const { html, text, preheader } = buildWithdrawalApprovedEmailTemplate(
+        this.fromName,
+        withdrawalRequest,
+        user,
+      );
+      await this.sendEmail(
+        user.email,
+        `Withdrawal Approved - ${withdrawalRequest.id?.substring(0, 8).toUpperCase() || 'N/A'}`,
+        html,
+        text,
+        preheader,
+        'withdrawal-approved',
+      );
+    } catch (error) {
+      this.logger.error('Error sending withdrawal approved email:', error);
+    }
+  }
+
+  /**
+   * Send withdrawal rejected email to user
+   */
+  async sendWithdrawalRejectedEmail(
+    withdrawalRequest: any,
+    user: any,
+    rejectionReason: string,
+  ): Promise<void> {
+    try {
+      if (!user?.email) {
+        this.logger.warn(
+          'User email not found, skipping withdrawal rejected email',
+        );
+        return;
+      }
+      const { html, text, preheader } = buildWithdrawalRejectedEmailTemplate(
+        this.fromName,
+        withdrawalRequest,
+        user,
+        rejectionReason,
+      );
+      await this.sendEmail(
+        user.email,
+        `Withdrawal Request Rejected - ${withdrawalRequest.id?.substring(0, 8).toUpperCase() || 'N/A'}`,
+        html,
+        text,
+        preheader,
+        'withdrawal-rejected',
+      );
+    } catch (error) {
+      this.logger.error('Error sending withdrawal rejected email:', error);
     }
   }
 }
