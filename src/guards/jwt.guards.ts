@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -15,7 +15,7 @@ export class JwtGuard implements CanActivate {
       throw new UnauthorizedException('Authorization header is missing');
     }
 
-    const token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+    const token = authHeader.split(' ')[1]; 
     console.log(token,900)
     if (!token) {
       throw new UnauthorizedException('JWT token not found');
@@ -25,7 +25,7 @@ export class JwtGuard implements CanActivate {
       const decoded = this.jwtService.verify(token, {
         secret: this.configService.get<string>('ACCESS_TOKEN')
       });
-      request.user = decoded; // Attach the decoded user data to the request
+      request.user = decoded; 
       return true;
     } catch (err) {
       throw new UnauthorizedException('Invalid token');

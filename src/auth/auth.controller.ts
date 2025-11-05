@@ -49,7 +49,7 @@ export class AuthController {
     private readonly jwtService: JwtService,
   ) {}
 
-  // NEW: Signup endpoints
+  
   @Post('signup/user')
   async signupUser(@Res() res, @Body() dto: SignupUserDto): Promise<any> {
     console.log('createUserDto', dto);
@@ -104,7 +104,7 @@ export class AuthController {
     }
   }
 
-  // Email verification OTP (token + otp as query)
+  
   @Get('verify/email')
   async verifyEmailOtp(@Res() res, @Query('otp') otp: string) {
     const { accessToken, user } = await this.authService.verifyEmailOtp(otp);
@@ -128,7 +128,7 @@ export class AuthController {
     });
   }
 
-  // Forgot/reset password via OTP
+  
   @Post('forgot-password')
   async forgotPassword(@Res() res, @Body() body: { email: string }) {
     await this.authService.forgotPassword(body.email);
@@ -206,11 +206,11 @@ export class AuthController {
         },
       });
     } catch (error) {
-      // Extract error message safely to avoid circular reference issues
+      
       const errorMessage =
         error?.message || error?.response?.message || 'Authentication failed';
 
-      // Return 428 (Precondition Required) for unverified users
+      
       const isUnverifiedError =
         errorMessage &&
         (errorMessage.includes('not verified') ||
@@ -239,7 +239,7 @@ export class AuthController {
     });
   }
 
-  // Moved to GeneralModule under /general
+  
 
   @Get('health')
   healthCheck(): string {
@@ -265,7 +265,7 @@ export class AuthController {
   }
 
   private static imageUploadOptions = {
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 5 * 1024 * 1024 }, 
     fileFilter: (req, file, callback) => {
       const allowed = ['image/jpeg', 'image/png', 'image/gif'];
       if (!allowed.includes(file.mimetype)) {
@@ -278,7 +278,7 @@ export class AuthController {
     },
   };
 
-  // Deprecated image endpoints (moved to /profile/*_img)
+  
   @Post('profile_img')
   async deprecatedProfileImg(@Res() res, @Body() body: { image: string }) {
     return res.status(HttpStatus.OK).json({

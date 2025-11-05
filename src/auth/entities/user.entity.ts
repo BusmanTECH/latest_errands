@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -37,11 +37,11 @@ export enum GenderType {
   FEMALE = 'female',
   OTHER = 'other',
 }
-// export enum UserRole {
-//   ADMIN = 'ADMIN',
-//   CUSTOMER = 'CUSTOMER',
-//   RIDER = 'RIDER',
-// }
+
+
+
+
+
 
 @Entity()
 export class User {
@@ -156,7 +156,7 @@ export class User {
   @JoinColumn()
   nin?: Nin;
 
-  // One-to-One relationship with Vehicle
+  
   @OneToOne(() => Vehicle, (vehicle) => vehicle.user, {
     cascade: true,
     nullable: true,

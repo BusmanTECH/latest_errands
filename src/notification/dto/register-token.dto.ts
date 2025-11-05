@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { IsString, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { DeviceType } from '../entities/push-token.entity';

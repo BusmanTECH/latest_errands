@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Get,
@@ -186,7 +186,6 @@ export class GeneralController {
     <div class="reference">Reference: ${ref}</div>
     <button class="close-button" onclick="window.close()">Close</button>
     <script>
-      // Auto-close after 3 seconds if opened in a popup
       if (window.opener) {
         setTimeout(function() {
           window.close();

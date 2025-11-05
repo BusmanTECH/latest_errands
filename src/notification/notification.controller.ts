@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Post,
@@ -200,7 +200,7 @@ export class NotificationController {
     @Body() dto: SendNotificationDto,
   ) {
     try {
-      // Check if user is admin or sending to themselves
+      
       const currentUserId = user.id || user.sub || user._id?.toString();
       const userRole = user?.role?.toLowerCase() || user?.role;
 

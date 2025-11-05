@@ -60,7 +60,7 @@ export class PaymentController {
     }
 
     try {
-      // Check if transaction is already verified
+      
       const existingTransaction =
         await this.paymentService.findTransactionByReference(
           transactionReference,
@@ -78,7 +78,7 @@ export class PaymentController {
         };
       }
 
-      // Verify the transaction with Paystack
+      
       const verifyPayment =
         await this.paystackService.verifyTransaction(transactionReference);
 
@@ -89,7 +89,7 @@ export class PaymentController {
         });
       }
 
-      // Update transaction status and mark as verified
+      
       const updateTransaction = await this.paymentService.updateTransaction(
         {
           reference: transactionReference,
@@ -108,7 +108,7 @@ export class PaymentController {
         });
       }
 
-      // Handle different payment types based on metadata via webhook handler
+      
       if (verifyPayment.data.metadata) {
         await this.handlePaymentConfirmation(
           verifyPayment.data,
@@ -138,12 +138,12 @@ export class PaymentController {
     @Req() req: any,
     @Headers('x-paystack-signature') signature: string,
   ) {
-    // Get body from request - handle Buffer from express.raw middleware
+    
     let body: any;
     let bodyString: string;
 
     if (Buffer.isBuffer(req.body)) {
-      // Body is a Buffer from express.raw middleware, convert to string
+      
       bodyString = req.body.toString('utf8');
       body = JSON.parse(bodyString);
     } else if (typeof req.body === 'string') {
@@ -154,7 +154,7 @@ export class PaymentController {
       bodyString = JSON.stringify(body);
     }
 
-    // Verify Paystack webhook signature - use the raw string
+    
     const crypto = require('crypto');
     const secret = process.env.PAYSTACK_SECRET_KEY;
     const hash = crypto
@@ -175,11 +175,11 @@ export class PaymentController {
       });
     }
 
-    // Handle the webhook event
+    
     const event = body.event;
     const data = body.data;
     if (event === 'charge.success') {
-      // Check if transaction is already verified to prevent duplicate processing
+      
       const existingTransaction =
         await this.paymentService.findTransactionByReference(data.reference);
 
@@ -191,7 +191,7 @@ export class PaymentController {
         };
       }
 
-      // Verify the transaction with Paystack
+      
       const verifyPayment = await this.paystackService.verifyTransaction(
         data.reference,
       );
@@ -222,7 +222,7 @@ export class PaymentController {
       }
 
       if (data.metadata?.orderId) {
-        // Handle order payments
+        
         if (data.metadata.orderId) {
           await this.handleOrderPayment(
             333,
@@ -233,7 +233,7 @@ export class PaymentController {
 
         const amountInNaira = 3000 / 100;
 
-        // Handle wallet funding payments
+        
         if (data.metadata.walletFunding && data.metadata.userId) {
           try {
             await this.walletService.creditWallet(
@@ -246,10 +246,10 @@ export class PaymentController {
           }
         }
 
-        // Handle card authorization
+        
         if (data.metadata.purpose === 'card_authorization') {
           try {
-            // Pass webhook data directly to avoid re-verification
+            
             await this.cardService.handleCardAuthorizationCallback(
               data.reference,
               {
@@ -264,7 +264,7 @@ export class PaymentController {
         }
       }
 
-      // Handle card authorization outside order payments
+      
       if (data?.metadata?.purpose === 'card_authorization') {
         try {
           await this.cardService.handleCardAuthorizationCallback(
@@ -292,14 +292,14 @@ export class PaymentController {
     orderId: string,
     reference: string,
   ): Promise<void> {
-    // First, verify the order exists and payment amount matches
+    
     const existingOrder = await this.orderService.findOne(orderId);
 
     if (!existingOrder) {
       return;
     }
 
-    // Verify payment amount matches order amount (convert from kobo to naira)
+    
     const paymentAmountInNaira = verifyPaymentData.amount / 100;
     if (Math.abs(paymentAmountInNaira - existingOrder.amount) > 0.01) {
       return;
@@ -308,7 +308,7 @@ export class PaymentController {
     if (verifyPaymentData.status === 'success') {
       const updatedOrder = await this.orderService.updateOrder(orderId, {
         paymentStatus: 'SUCCESSFUL',
-        paymentMethod: 'card', // Ensure payment method is set to card
+        paymentMethod: 'card', 
         paidAt: new Date(),
       });
 
@@ -318,7 +318,7 @@ export class PaymentController {
         updatedOrder.paymentMethod !== 'cash'
       ) {
         try {
-          // Credit the driver immediately
+          
           await this.paymentService.creditRiderEarnings(
             updatedOrder.driverId.toString(),
             Number(updatedOrder.amount),
@@ -328,14 +328,14 @@ export class PaymentController {
         }
       }
     } else {
-      // Payment was not successful, update order status
+      
       await this.orderService.updateOrder(orderId, {
         paymentStatus: 'FAILED',
       });
     }
   }
 
-  // ===================================ADMIN PAYMENT ENDPOINTS========================
+  
 
   private async handlePaymentConfirmation(
     paymentData: any,
@@ -346,7 +346,7 @@ export class PaymentController {
 
     if (metadata?.walletFunding && metadata?.userId) {
       try {
-        // Update wallet balance
+        
         await this.walletService.creditWallet(
           metadata.userId,
           amountInNaira,
@@ -364,15 +364,15 @@ export class PaymentController {
         });
       } catch (error) {
         console.error('Error funding wallet:', error);
-        // Don't throw - log the error but continue
-        // The wallet has already been credited, so we don't want to fail the payment
+        
+        
         console.error('Transaction record creation failed:', error.message);
       }
     }
 
     if (metadata?.orderId && metadata?.userId) {
       try {
-        // Create Transaction record for order payment with unique reference
+        
         await this.transactionService.createTransaction({
           userId: metadata.userId,
           orderId: metadata.orderId,

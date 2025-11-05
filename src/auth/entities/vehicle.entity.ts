@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
     Entity,
     PrimaryGeneratedColumn,
@@ -38,7 +38,7 @@ export class Vehicle {
   @Column({ nullable: true })
   specialEquipment?: string;
 
- // One-to-One relationship with User
+ 
  @OneToOne(() => User, (user) => user.vehicle)
  @Exclude()
  user?: User;

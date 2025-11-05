@@ -25,7 +25,7 @@ import { User } from '../auth/entities/user.entity';
     WalletModule,
     forwardRef(() => PaymentModule),
     PricingModule,
-    AuthModule, // For User entity access
+    AuthModule, 
     TransactionModule,
     MailModule,
     NotificationModule,

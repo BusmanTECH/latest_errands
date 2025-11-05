@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 export function buildWithdrawalRequestEmailTemplate(
   brandName: string,
   withdrawalRequest: any,

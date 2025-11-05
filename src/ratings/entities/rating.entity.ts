@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -19,7 +19,7 @@ export enum RatedUserRole {
 }
 
 @Entity('ratings')
-@Unique(['orderId', 'raterId']) // One rating per order per rater
+@Unique(['orderId', 'raterId']) 
 @Index(['orderId'])
 @Index(['ratedUserId'])
 @Index(['raterId'])
@@ -36,14 +36,14 @@ export class Rating {
 
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'raterId' })
-  rater: User; // User who is giving the rating
+  rater: User; 
 
   @Column({ type: 'uuid', nullable: false })
   raterId: string;
 
   @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'ratedUserId' })
-  ratedUser: User; // User who is being rated (driver or user)
+  ratedUser: User; 
 
   @Column({ type: 'uuid', nullable: false })
   ratedUserId: string;
@@ -54,7 +54,7 @@ export class Rating {
     scale: 2,
     nullable: false,
   })
-  rating: number; // Rating value from 1 to 5
+  rating: number; 
 
   @Column({ type: 'text', nullable: true })
   comment: string;
@@ -64,7 +64,7 @@ export class Rating {
     enum: RatedUserRole,
     nullable: false,
   })
-  ratedUserRole: RatedUserRole; // Role of the person being rated
+  ratedUserRole: RatedUserRole; 
 
   @CreateDateColumn()
   createdAt: Date;

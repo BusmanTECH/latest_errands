@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
@@ -9,6 +9,7 @@ import { WalletController } from './wallet.controller';
 import { PaymentModule } from '../payment/payment.module';
 import { NotificationModule } from '../notification/notification.module';
 import { MailModule } from '../mail/mail.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MailModule } from '../mail/mail.module';
     forwardRef(() => PaymentModule),
     NotificationModule,
     MailModule,
+    TransactionModule,
   ],
   controllers: [WalletController],
   providers: [WalletService],

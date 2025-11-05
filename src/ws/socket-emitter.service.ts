@@ -1,13 +1,13 @@
-/* eslint-disable prettier/prettier */
-// src/ws/socket-emitter.service.ts
+
+
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
 
 @Injectable()
 export class SocketEmitter {
-  private ridersNs?: Server;           // /ws/riders
-  private deliveryReqNs?: Server;      // /ws/delivery_request
-  private deliveryNs?: Server;         // /ws/delivery
+  private ridersNs?: Server;           
+  private deliveryReqNs?: Server;      
+  private deliveryNs?: Server;         
 
   setServers({ riders, deliveryReq, delivery }: { riders?: Server; deliveryReq?: Server; delivery?: Server; }) {
     this.ridersNs = riders ?? this.ridersNs;
@@ -15,7 +15,7 @@ export class SocketEmitter {
     this.deliveryNs = delivery ?? this.deliveryNs;
   }
 
-  // Riders namespace
+  
   emitRiderOnline(driverId: string) {
     this.ridersNs?.emit('rider:online', { driverId, ts: Date.now() });
   }
@@ -26,12 +26,12 @@ export class SocketEmitter {
     this.ridersNs?.emit('rider:location', { driverId, coords, ts: Date.now(), ...extra });
   }
 
-  // Delivery request (to one rider room)
+  
   pushDeliveryRequest(driverId: string, payload: any) {
     this.deliveryReqNs?.to(`rider:${driverId}`).emit('delivery:request', payload);
   }
 
-  // Per-order delivery room
+  
   emitDeliveryUpdate(orderId: string, status: string) {
     this.deliveryNs?.to(`order:${orderId}`).emit('delivery:update', { orderId, status, ts: Date.now() });
   }

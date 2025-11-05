@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
@@ -8,9 +8,9 @@ export class ResponseFormatMiddleware implements NestMiddleware {
     const originalJson = res.json.bind(res);
     const originalSend = res.send.bind(res);
 
-    // Wrap res.json
+    
     (res as any).json = (data: any) => {
-      // If the controller already returned an enveloped shape, don't wrap again
+      
       if (
         data &&
         typeof data === 'object' &&
@@ -35,10 +35,10 @@ export class ResponseFormatMiddleware implements NestMiddleware {
       return originalJson(payload);
     };
 
-    // Wrap res.send for non-JSON sends (strings/buffers)
+    
     (res as any).send = (body: any) => {
       try {
-        // If body is already an enveloped shape, pass through
+        
         if (
           body &&
           typeof body === 'object' &&
@@ -51,7 +51,7 @@ export class ResponseFormatMiddleware implements NestMiddleware {
           return originalSend(body);
         }
 
-        // Attempt to JSON-wrap when possible
+        
         const statusCode = res.statusCode || 200;
         const success = statusCode >= 200 && statusCode < 300;
         const payload = {
@@ -61,7 +61,7 @@ export class ResponseFormatMiddleware implements NestMiddleware {
           timestamp: new Date().toISOString(),
           data: body,
         };
-        // Respect content-type if not JSON
+        
         const contentType = res.get('Content-Type') || '';
         if (
           typeof body === 'string' &&

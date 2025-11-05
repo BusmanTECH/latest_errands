@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   NotFoundException,
@@ -24,26 +24,26 @@ export class TransactionService {
   ) {}
 
   async createTransaction(dto: CreateTransactionDto): Promise<Transaction> {
-    // Validate that either userId or driverId is provided
+    
     if (!dto.userId && !dto.driverId) {
       throw new BadRequestException(
         'Either userId or driverId must be provided',
       );
     }
 
-    // Generate reference if not provided
+    
     let reference = dto.reference;
     if (!reference) {
       reference = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     }
 
-    // Check if reference already exists (only if reference is provided)
+    
     if (reference) {
       const existingTransaction = await this.transactionRepo.findOne({
         where: { reference },
       });
       if (existingTransaction) {
-        // If reference exists, generate a new one
+        
         reference = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       }
     }
@@ -58,7 +58,7 @@ export class TransactionService {
       reference,
     });
 
-    // Set user or driver relationship
+    
     if (dto.userId) {
       const user = await this.userRepo.findOne({ where: { id: dto.userId } });
       if (!user) throw new NotFoundException('User not found');
@@ -88,7 +88,7 @@ export class TransactionService {
       status: savedTransaction.status,
     });
 
-    // Reload with relations for proper serialization
+    
     const transactionWithRelations = await this.transactionRepo.findOne({
       where: { id: savedTransaction.id },
       relations: ['user', 'driver'],
@@ -142,7 +142,7 @@ export class TransactionService {
 
     const [transactions, total] = await queryBuilder.getManyAndCount();
 
-    // Serialize transactions to remove circular references
+    
     const serializedTransactions = transactions.map((txn) =>
       this.serializeTransaction(txn),
     );
@@ -155,9 +155,7 @@ export class TransactionService {
     };
   }
 
-  /**
-   * Serialize transaction to remove circular references
-   */
+  
   serializeTransaction(transaction: Transaction): any {
     return {
       id: transaction.id,
@@ -226,7 +224,7 @@ export class TransactionService {
       );
     }
 
-    // Apply filters from rest params
+    
     if (rest.type) {
       queryBuilder.andWhere('transaction.type = :type', { type: rest.type });
     }
@@ -241,7 +239,7 @@ export class TransactionService {
 
     const [transactions, total] = await queryBuilder.getManyAndCount();
 
-    // Serialize transactions to remove circular references
+    
     const serializedTransactions = transactions.map((txn) =>
       this.serializeTransaction(txn),
     );
@@ -265,7 +263,7 @@ export class TransactionService {
     const limit = 20;
     const skip = (page - 1) * limit;
 
-    // Clean up filters
+    
     const sanitizedFilters: Record<string, any> = {};
     Object.entries(filters || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -281,7 +279,7 @@ export class TransactionService {
       .leftJoinAndSelect('transaction.user', 'user')
       .leftJoinAndSelect('transaction.driver', 'driver');
 
-    // Apply filters
+    
     if (sanitizedFilters.type) {
       queryBuilder.andWhere('transaction.type = :type', {
         type: sanitizedFilters.type,
@@ -293,7 +291,7 @@ export class TransactionService {
       });
     }
 
-    // Search keyword
+    
     if (searchKeyword) {
       queryBuilder.andWhere(
         '(transaction.type ILIKE :keyword OR transaction.reference ILIKE :keyword OR transaction.status ILIKE :keyword OR transaction.narration ILIKE :keyword)',
@@ -306,7 +304,7 @@ export class TransactionService {
 
     const [transactions, total] = await queryBuilder.getManyAndCount();
 
-    // Serialize transactions to remove circular references
+    
     const serializedTransactions = transactions.map((txn) =>
       this.serializeTransaction(txn),
     );
@@ -333,9 +331,7 @@ export class TransactionService {
     return transaction;
   }
 
-  /**
-   * Get serialized transaction by ID (safe for JSON responses)
-   */
+  
   async getSerializedTransactionById(id: string): Promise<any> {
     const transaction = await this.getTransactionById(id);
     return this.serializeTransaction(transaction);

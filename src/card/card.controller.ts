@@ -140,7 +140,7 @@ export class CardController {
           cardName: card.card_name,
           cardNumber: card.card_number,
           cardDigit: card.card_digit,
-          // Don't expose authorization_code in response
+          
         },
       };
     } catch (error) {
@@ -173,7 +173,7 @@ export class CardController {
         await this.cardService.handleCardAuthorizationCallback(transactionRef);
 
       if (result.success) {
-        // Card is automatically saved now, redirect to success page
+        
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
         const successUrl = result.card
           ? `${backendUrl}/general/callback?success=true&message=${encodeURIComponent(result.message || 'Your card has been added successfully!')}&reference=${transactionRef}`
@@ -194,18 +194,18 @@ export class CardController {
   }
 
   @Post('/webhook')
-  @UseGuards() // Remove auth requirement for webhook
+  @UseGuards() 
   @ApiOperation({
     summary:
       'Paystack webhook endpoint for card authorization events (No Auth Required)',
   })
   async handleWebhook(@Body() webhookData: any, @Res() res: Response) {
     try {
-      // Verify webhook signature if needed (implement Paystack signature verification)
-      // const signature = req.headers['x-paystack-signature'];
-      // if (!this.verifyPaystackSignature(webhookData, signature)) {
-      //   return res.status(401).json({ success: false, message: 'Invalid signature' });
-      // }
+      
+      
+      
+      
+      
 
       const result = await this.cardService.handleWebhookEvent(webhookData);
 
@@ -247,7 +247,7 @@ export class CardController {
           cardNumber: card.card_number,
           cardDigit: card.card_digit,
           cardDate: card.card_date,
-          // Don't expose authorization_code
+          
         },
       };
     } catch (error) {

@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/ws/entities/customer-last-location.entity.ts
+
+
 import { Entity, PrimaryGeneratedColumn, Column, Unique } from 'typeorm';
 @Entity('customer_last_location')
 @Unique(['userId'])

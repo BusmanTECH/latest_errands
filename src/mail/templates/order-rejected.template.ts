@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 export function buildOrderRejectedEmailTemplate(
   brandName: string,
   order: any,

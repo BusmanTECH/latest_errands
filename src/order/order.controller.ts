@@ -32,7 +32,7 @@ import { AssignOrderDto } from './dto/order.dto';
 import { Users } from '../decorators/user.decorator';
 import { AdminGuard } from '../guards/admin.guard';
 
-// Alias for backward compatibility
+
 const AuthUser = Users;
 
 @ApiTags('order')
@@ -84,7 +84,7 @@ export class OrderController {
         pickupCoordinates: `${body.pickupCoords.latitude},${body.pickupCoords.longitude}`,
         deliveryCoords: body.deliveryCoords,
         deliveryType: body.deliveryType || 'instant',
-        // mode: body.vehicle
+        
       };
       const result = await this.orderService.calculateMultipleCost(payload);
       return res.status(HttpStatus.OK).json(result);
@@ -101,7 +101,7 @@ export class OrderController {
   @UseGuards(AuthGuard('jwt'))
   async order(@AuthUser() user: any, @Body() body: any, @Res() res: Response) {
     try {
-      // If deliveries array is present, treat as multiple order
+      
       if (Array.isArray(body.deliveries) && body.deliveries.length > 0) {
         const result = await this.orderService.createMultipleOrders({
           ...body,
@@ -406,10 +406,10 @@ export class OrderController {
     try {
       const payload = {
         status: 'toDestination',
-        // completeTime: new Date()
+        
       };
       const newOrder = await this.orderService.updateOrder(id, payload);
-      // Emit WebSocket event
+      
 
       return {
         success: true,
@@ -417,7 +417,7 @@ export class OrderController {
         data: newOrder,
       };
     } catch (error) {
-      // Handle other errors
+      
       throw new HttpException(
         error.message || 'An error occurred while completing the order',
         error.status || HttpStatus.INTERNAL_SERVER_ERROR,
@@ -471,7 +471,7 @@ export class OrderController {
         throw new HttpException('Order ID is required', HttpStatus.BAD_REQUEST);
       }
 
-      // Validate user has 'rider' role
+      
       const userRole = user?.role?.toLowerCase() || user?.role;
       if (userRole !== 'rider') {
         throw new HttpException(
@@ -497,7 +497,7 @@ export class OrderController {
     @Query('status') status?: string,
   ) {
     try {
-      // Validate user has 'rider' role
+      
       const userRole = user?.role?.toLowerCase() || user?.role;
       if (userRole !== 'rider') {
         throw new HttpException(
@@ -520,13 +520,13 @@ export class OrderController {
     }
   }
 
-  // ===================================ADMIN ORDER ENDPOINTS========================
+  
 
   @Get('/all_orders')
   @UseGuards(AuthGuard('jwt'), AdminGuard)
   async getAllOrderAdmin(@Query('page') page: number, @Query() query: any) {
     try {
-      const { page: _, ...filters } = query; // Exclude 'page' from filters
+      const { page: _, ...filters } = query; 
       const orders = await this.orderService.allOrders(page || 1, filters);
 
       return {
@@ -564,7 +564,7 @@ export class OrderController {
     }
   }
 
-  // Admin endpoints for order settings
+  
   @Get('/admin/settings')
   @UseGuards(AuthGuard('jwt'), AdminGuard)
   @ApiOperation({ summary: 'Get current pricing settings (Admin)' })
@@ -581,7 +581,7 @@ export class OrderController {
     }
   }
 
-  // Public endpoint to fetch current pricing/settings (first/active)
+  
   @Get('/settings')
   @ApiOperation({ summary: 'Fetch current pricing settings (public)' })
   @ApiOkResponse({ type: OrderSettingResponseDto })

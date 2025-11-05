@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Get,
@@ -41,7 +41,7 @@ export class TransactionController {
       const userRole = user?.role?.toLowerCase() || user?.role;
       const isRider = userRole === 'rider' || userRole === 'RIDER';
 
-      // Auto-set userId or driverId from authenticated user based on role
+      
       if (!dto.userId && !dto.driverId) {
         if (isRider) {
           dto.driverId = userId;
@@ -75,7 +75,7 @@ export class TransactionController {
     @Res() res: Response,
   ) {
     try {
-      const { page: _, ...filters } = query; // Exclude 'page' from filters
+      const { page: _, ...filters } = query; 
       const transactions = await this.transactionService.getAllTransactions(
         page || 1,
         filters,
@@ -113,12 +113,12 @@ export class TransactionController {
         });
       }
 
-      // Get user role from token - check both 'role' property and handle case variations
+      
       const userRole = user?.role?.toLowerCase() || user?.role;
       const isRider = userRole === 'rider' || userRole === 'RIDER';
 
-      // For both users and riders, use the same service method which checks both user.id and driver.id
-      // The service already handles this by checking both user.id and driver.id in the query
+      
+      
       const result = await this.transactionService.getTransactions(userId, {
         type,
         status,

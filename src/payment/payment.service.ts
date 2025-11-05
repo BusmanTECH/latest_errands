@@ -48,13 +48,13 @@ export class PaymentService {
   async createTransaction(
     payload: Partial<PaymentTransaction>,
   ): Promise<PaymentTransaction> {
-    // Generate reference if not provided
+    
     let reference = payload.reference;
     if (!reference) {
       reference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     }
 
-    // Ensure reference is unique - retry up to 5 times
+    
     let attempts = 0;
     const maxAttempts = 5;
     while (attempts < maxAttempts) {
@@ -63,10 +63,10 @@ export class PaymentService {
       });
 
       if (!existing) {
-        break; // Reference is unique, proceed
+        break; 
       }
 
-      // Reference exists, generate a new one
+      
       reference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}-${attempts}`;
       attempts++;
     }
@@ -82,7 +82,7 @@ export class PaymentService {
       reference,
     });
 
-    // Set user or driver relationship if IDs provided
+    
     if (payload.user) {
       const user = await this.userRepo.findOne({
         where: {
@@ -107,13 +107,13 @@ export class PaymentService {
     try {
       return await this.transactionRepo.save(transaction);
     } catch (error) {
-      // Handle database-level unique constraint violations
+      
       if (
         error.message?.includes('duplicate key') ||
         error.message?.includes('unique constraint') ||
-        error.code === '23505' // PostgreSQL unique violation error code
+        error.code === '23505' 
       ) {
-        // Generate a new reference and retry once
+        
         const newReference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}-RETRY`;
         transaction.reference = newReference;
         try {
@@ -159,7 +159,7 @@ export class PaymentService {
       );
     }
 
-    // Apply filters from rest params
+    
     if (rest.type) {
       queryBuilder.andWhere('transaction.type = :type', { type: rest.type });
     }
@@ -196,8 +196,8 @@ export class PaymentService {
     try {
       const transaction = await this.transactionRepo.findOne({ where: query });
       if (!transaction) {
-        // For webhook processing, if transaction doesn't exist, create it
-        // This handles cases like card authorization where we didn't pre-create the transaction
+        
+        
         try {
           const newTransaction = this.transactionRepo.create({
             reference: query.reference,
@@ -262,7 +262,7 @@ export class PaymentService {
     const limit = 20;
     const skip = (page - 1) * limit;
 
-    // Clean up filters
+    
     const sanitizedFilters: Record<string, any> = {};
     Object.entries(filters || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -278,7 +278,7 @@ export class PaymentService {
       .leftJoinAndSelect('transaction.user', 'user')
       .leftJoinAndSelect('transaction.driver', 'driver');
 
-    // Apply filters
+    
     if (sanitizedFilters.type) {
       queryBuilder.andWhere('transaction.type = :type', {
         type: sanitizedFilters.type,
@@ -290,7 +290,7 @@ export class PaymentService {
       });
     }
 
-    // Search keyword
+    
     if (searchKeyword) {
       queryBuilder.andWhere(
         '(transaction.type ILIKE :keyword OR transaction.reference ILIKE :keyword OR transaction.status ILIKE :keyword)',
@@ -317,16 +317,16 @@ export class PaymentService {
     amount: number,
     callbackUrl?: string,
   ): Promise<{ authorizationUrl: string; reference: string }> {
-    // Get user details
+    
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Generate unique reference
+    
     const reference = this.paystackService.generateReference('WALLET');
 
-    // Initialize Paystack transaction
+    
     const paystackResponse = await this.paystackService.initializeTransaction({
       email: user.email,
       amount: amount,
@@ -341,7 +341,7 @@ export class PaymentService {
       },
     });
 
-    // Create PaymentTransaction record
+    
     const paymentTransaction = await this.createTransaction({
       user: user,
       amount: amount,
@@ -363,7 +363,7 @@ export class PaymentService {
     if (!settings) {
       throw new BadRequestException('Pricing settings not configured');
     }
-    return Number(settings.orderPercentage) || 10; // Default to 10% if not set
+    return Number(settings.orderPercentage) || 10; 
   }
 
   async getBalanceLimit(): Promise<number> {
@@ -371,7 +371,7 @@ export class PaymentService {
     if (!settings) {
       throw new BadRequestException('Pricing settings not configured');
     }
-    return Number(settings.limitAmount) || -1000; // Default to -1000 if not set
+    return Number(settings.limitAmount) || -1000; 
   }
 
   async calculatePlatformFee(orderAmount: number): Promise<number> {
@@ -385,13 +385,13 @@ export class PaymentService {
   ): Promise<void> {
     const limitAmount = await this.getBalanceLimit();
 
-    // Deduct fee from wallet with negative balance allowance
+    
     await this.walletService.debitWallet(
       riderId,
       feeAmount,
       'Platform fee deduction',
-      true, // allowNegative
-      limitAmount, // negativeLimit
+      true, 
+      limitAmount, 
     );
   }
 
@@ -410,19 +410,19 @@ export class PaymentService {
     riderId: string,
     cardId?: string,
   ): Promise<{ success: boolean; reference: string }> {
-    // Get user
+    
     const user = await this.userRepo.findOne({
       where: { id: userId },
       relations: ['card'],
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Check if card exists
+    
     let card: Card | null = null;
     if (cardId) {
       card = await this.cardRepo.findOne({ where: { id: cardId } });
     } else {
-      // Get user's attached card
+      
       card = user.card || null;
     }
 
@@ -432,18 +432,18 @@ export class PaymentService {
       );
     }
 
-    // Check if card has authorization_code
+    
     if (!card.authorization_code) {
       throw new BadRequestException(
         'Card authorization not available. Please re-add your card.',
       );
     }
 
-    // Generate reference
+    
     const reference = this.paystackService.generateReference('ORDER');
 
     try {
-      // Charge card via Paystack using saved authorization_code
+      
       const chargeResponse = await this.paystackService.chargeAuthorization({
         email: user.email,
         amount: orderAmount,
@@ -463,22 +463,22 @@ export class PaymentService {
         );
       }
 
-      // Verify rider is a driver
+      
       const rider = await this.userRepo.findOne({
         where: { id: riderId, role: UserRole.RIDER },
       });
       if (!rider) throw new NotFoundException('Rider not found');
 
-      // Get platform fee
+      
       const platformFee = await this.calculatePlatformFee(orderAmount);
 
-      // Deduct platform fee from rider wallet
+      
       await this.deductPlatformFeeFromRider(riderId, platformFee);
 
-      // Credit full order amount to rider wallet (for card payments)
+      
       await this.creditRiderEarnings(riderId, orderAmount);
 
-      // Create PaymentTransaction
+      
       await this.createTransaction({
         user: user,
         driver: rider,
@@ -487,13 +487,13 @@ export class PaymentService {
         orderId: orderId,
         type: PaymentTransactionType.DEBIT,
         status: PaymentTransactionStatus.SUCCESSFUL,
-        narration: `Order payment for order ${orderId}`,
+        narration: `Order payment for order `,
         currency: 'NGN',
         isVerified: true,
         verifiedAt: new Date(),
       });
 
-      // Create Transaction record for rider earnings
+      
       await this.transactionService.createTransaction({
         userId: riderId,
         orderId: orderId,
@@ -505,7 +505,7 @@ export class PaymentService {
         reference: `TXN-${reference}`,
       });
 
-      // Create Transaction record for platform fee deduction
+      
       await this.transactionService.createTransaction({
         userId: riderId,
         orderId: orderId,
@@ -517,7 +517,7 @@ export class PaymentService {
         reference: `TXN-FEE-${reference}`,
       });
 
-      // Update driver stats
+      
       await this.driverService.updateDriverStats(riderId, orderAmount);
 
       return { success: true, reference };
@@ -533,14 +533,14 @@ export class PaymentService {
     orderAmount: number,
     orderId: string,
   ): Promise<{ success: boolean; reference: string }> {
-    // Get user with card relationship
+    
     const user = await this.userRepo.findOne({
       where: { id: userId },
       relations: ['card'],
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Check if user has a saved card
+    
     if (!user.card || !user.card.authorization_code) {
       throw new BadRequestException(
         'Please add a payment card before placing order',
@@ -549,11 +549,11 @@ export class PaymentService {
 
     const card = user.card;
 
-    // Generate reference (will be made unique by createTransaction if needed)
+    
     let reference = this.paystackService.generateReference('ORDER');
 
     try {
-      // Charge card via Paystack using saved authorization_code
+      
       const chargeResponse = await this.paystackService.chargeAuthorization({
         email: user.email,
         amount: orderAmount,
@@ -567,7 +567,7 @@ export class PaymentService {
       });
 
       if (chargeResponse.data?.status !== 'success') {
-        // Check for insufficient funds error
+        
         const errorMessage =
           chargeResponse.data?.gateway_response || 'Card charge failed';
         if (
@@ -583,7 +583,7 @@ export class PaymentService {
         );
       }
 
-      // Check if PaymentTransaction already exists for this order (prevent duplicates)
+      
       let paymentTransaction = await this.transactionRepo.findOne({
         where: {
           orderId: orderId,
@@ -592,50 +592,50 @@ export class PaymentService {
       });
 
       if (!paymentTransaction) {
-        // Create PaymentTransaction record for order payment
-        // createTransaction will handle reference uniqueness automatically
+        
+        
         try {
           paymentTransaction = await this.createTransaction({
             user: user,
             amount: orderAmount,
-            reference: reference, // Will be made unique by createTransaction if needed
+            reference: reference, 
             orderId: orderId,
             type: PaymentTransactionType.DEBIT,
             status: PaymentTransactionStatus.SUCCESSFUL,
-            narration: `Order payment for order ${orderId}`,
+            narration: `Order payment for order `,
             currency: 'NGN',
             isVerified: true,
             verifiedAt: new Date(),
           });
         } catch (error) {
-          // If duplicate key error or unique constraint, check if transaction already exists for this order
+          
           if (
             error.message?.includes('duplicate key') ||
             error.message?.includes('unique constraint') ||
             error.code === '23505'
           ) {
-            // Try to find existing transaction for this order
+            
             paymentTransaction = await this.transactionRepo.findOne({
               where: { orderId: orderId },
             });
             if (!paymentTransaction) {
-              // If still not found, it's a different issue - throw the error
+              
               throw new BadRequestException(
                 'Failed to create payment transaction. Please try again.',
               );
             }
-            // Use the existing transaction's reference
+            
             reference = paymentTransaction.reference;
           } else {
             throw error;
           }
         }
       } else {
-        // Use existing transaction's reference
+        
         reference = paymentTransaction.reference;
       }
 
-      // Create Transaction record (check for existing first)
+      
       const existingTxnRef = `TXN-${paymentTransaction.reference}`;
       const existingTxnByRef =
         await this.transactionService.getTransactionByReference(existingTxnRef);
@@ -648,12 +648,12 @@ export class PaymentService {
             type: TransactionType.DEBIT,
             amount: orderAmount,
             currency: 'NGN',
-            narration: `Order payment for order ${orderId}`,
+            narration: `Order payment for order `,
             status: TransactionStatus.SUCCESSFUL,
             reference: existingTxnRef,
           });
         } catch (error) {
-          // If duplicate, continue - transaction might already exist
+          
           if (
             !error.message?.includes('duplicate key') &&
             !error.message?.includes('unique constraint')
@@ -680,13 +680,13 @@ export class PaymentService {
     orderId: string,
     riderId: string,
   ): Promise<{ success: boolean }> {
-    // Verify rider is a driver
+    
     const rider = await this.userRepo.findOne({
       where: { id: riderId, role: UserRole.RIDER },
     });
     if (!rider) throw new NotFoundException('Rider not found');
 
-    // Get commission percentage from PricingService
+    
     const pricingSettings = await this.pricingService.getCurrentSettings();
     if (!pricingSettings) {
       throw new BadRequestException('Pricing settings not configured');
@@ -695,7 +695,7 @@ export class PaymentService {
     const orderPercentage = Number(pricingSettings.orderPercentage) || 10;
     const commission = (orderAmount * orderPercentage) / 100;
 
-    // Check rider wallet has sufficient balance for commission
+    
     const walletBalance = await this.walletService.getWalletBalance(riderId);
 
     if (walletBalance < commission) {
@@ -704,10 +704,10 @@ export class PaymentService {
       );
     }
 
-    // Deduct commission from rider wallet
+    
     await this.deductPlatformFeeFromRider(riderId, commission);
 
-    // Create PaymentTransaction for cash payment
+    
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -727,7 +727,7 @@ export class PaymentService {
       verifiedAt: new Date(),
     });
 
-    // Create Transaction record for commission deduction
+    
     await this.transactionService.createTransaction({
       userId: riderId,
       orderId: orderId,
@@ -739,15 +739,13 @@ export class PaymentService {
       reference: `TXN-${reference}`,
     });
 
-    // Update driver stats
+    
     await this.driverService.updateDriverStats(riderId, orderAmount);
 
     return { success: true };
   }
 
-  /**
-   * Verify Paystack webhook signature
-   */
+  
   verifyPaystackSignature(body: any, signature: string): boolean {
     try {
       const crypto = require('crypto');
@@ -762,16 +760,16 @@ export class PaymentService {
         return false;
       }
 
-      // Handle different body formats
+      
       let bodyString: string;
       if (typeof body === 'string') {
-        // Body is already a string
+        
         bodyString = body;
       } else if (Buffer.isBuffer(body)) {
-        // Body is a Buffer
+        
         bodyString = body.toString('utf8');
       } else if (body != null) {
-        // Body is an object, stringify it
+        
         bodyString = JSON.stringify(body);
       } else {
         return false;
@@ -791,9 +789,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Main webhook handler that routes events to appropriate services
-   */
+  
   async handleWebhookEvent(
     eventData: any,
   ): Promise<{ success: boolean; message: string; processedBy?: string }> {
@@ -809,11 +805,11 @@ export class PaymentService {
         `Processing webhook event: ${event} for reference: ${data.reference}`,
       );
 
-      // Extract metadata to determine the purpose
+      
       const metadata = data.metadata || {};
       const purpose = metadata.purpose;
 
-      // Route based on purpose or event type
+      
       switch (purpose) {
         case 'card_authorization':
           return await this.handleCardAuthorizationWebhook(data);
@@ -822,9 +818,9 @@ export class PaymentService {
           return await this.handleOrderPaymentWebhook(data, event);
 
         default:
-          // If no purpose, check event type and handle accordingly
+          
           if (event === 'charge.success' || event === 'transaction.success') {
-            // Try to infer purpose from metadata or handle as general payment
+            
             if (purpose) {
               this.logger.warn(
                 `Unknown purpose: ${purpose}, handling as general payment`,
@@ -847,9 +843,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Handle card authorization webhook
-   */
+  
   private async handleCardAuthorizationWebhook(
     data: any,
   ): Promise<{ success: boolean; message: string; processedBy: string }> {
@@ -864,7 +858,7 @@ export class PaymentService {
         };
       }
 
-      // Use card service to handle authorization callback
+      
       const result =
         await this.cardService.handleCardAuthorizationCallback(reference);
 
@@ -891,9 +885,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Handle order payment webhook
-   */
+  
   private async handleOrderPaymentWebhook(
     data: any,
     event: string,
@@ -901,7 +893,7 @@ export class PaymentService {
     try {
       const reference = data.reference;
 
-      // Check if transaction is already verified to prevent duplicate processing
+      
       const existingTransaction =
         await this.findTransactionByReference(reference);
 
@@ -914,7 +906,7 @@ export class PaymentService {
         };
       }
 
-      // Verify the transaction with Paystack
+      
       const verifyPayment =
         await this.paystackService.verifyTransaction(reference);
 
@@ -926,7 +918,7 @@ export class PaymentService {
         };
       }
 
-      // Update transaction status and mark as verified
+      
       const updateTransaction = await this.updateTransaction(
         { reference },
         {
@@ -944,7 +936,7 @@ export class PaymentService {
         };
       }
 
-      // Handle payment confirmation based on metadata
+      
       if (verifyPayment.data.metadata) {
         await this.handlePaymentConfirmation(verifyPayment.data, reference);
         this.logger.log(`Order payment processed for reference: ${reference}`);
@@ -965,9 +957,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Handle general payment webhook (for payments without specific purpose)
-   */
+  
   private async handleGeneralPaymentWebhook(
     data: any,
     event: string,
@@ -975,7 +965,7 @@ export class PaymentService {
     try {
       const reference = data.reference;
 
-      // Check if transaction exists
+      
       const existingTransaction =
         await this.findTransactionByReference(reference);
 
@@ -994,7 +984,7 @@ export class PaymentService {
               },
             );
 
-            // Handle payment confirmation for wallet funding and other purposes
+            
             if (verifyPayment.data.metadata) {
               await this.handlePaymentConfirmation(
                 verifyPayment.data,
@@ -1011,7 +1001,7 @@ export class PaymentService {
         };
       }
 
-      // If no transaction found, just log it
+      
       this.logger.log(
         `General payment webhook received for reference: ${reference} but no transaction found`,
       );
@@ -1031,9 +1021,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Handle payment confirmation - creates transactions for wallet funding and order payments
-   */
+  
   private async handlePaymentConfirmation(
     paymentData: any,
     reference: string,
@@ -1042,10 +1030,10 @@ export class PaymentService {
     const metadata = paymentData.metadata;
     const amountInNaira = paymentData.amount / 100;
 
-    // Handle wallet funding payments
+    
     if (metadata?.walletFunding && metadata?.userId) {
       try {
-        // Update wallet balance
+        
 
         await this.walletService.creditWallet(
           metadata.userId,
@@ -1063,8 +1051,8 @@ export class PaymentService {
           reference: `TXN-${reference}`,
         });
       } catch (error) {
-        // Don't throw - log the error but continue
-        // The wallet has already been credited, so we don't want to fail the payment
+        
+        
         console.error(
           '[PAYMENT_SERVICE] Transaction record creation failed:',
           error.message,
@@ -1072,10 +1060,10 @@ export class PaymentService {
       }
     }
 
-    // Handle order payments
+    
     if (metadata?.orderId && metadata?.userId) {
       try {
-        // Create Transaction record for order payment with unique reference
+        
 
         await this.transactionService.createTransaction({
           userId: metadata.userId,
@@ -1083,7 +1071,7 @@ export class PaymentService {
           type: TransactionType.DEBIT,
           amount: amountInNaira,
           currency: 'NGN',
-          narration: `Order payment for order ${metadata.orderId}`,
+          narration: `Order payment for order`,
           status: TransactionStatus.SUCCESSFUL,
           reference: `TXN-${reference}`,
         });
@@ -1093,8 +1081,8 @@ export class PaymentService {
           error,
         );
         console.error('[PAYMENT_SERVICE] Error stack:', error.stack);
-        // Don't throw - log the error but continue
-        // The payment has already been processed, so we don't want to fail
+        
+        
         console.error(
           '[PAYMENT_SERVICE] Transaction record creation failed:',
           error.message,
@@ -1102,7 +1090,7 @@ export class PaymentService {
       }
     }
 
-    // Log if no specific purpose found
+    
     if (!metadata?.walletFunding && !metadata?.orderId) {
       console.log(
         '[PAYMENT_SERVICE] No wallet funding or order payment metadata found',

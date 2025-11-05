@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Twilio } from 'twilio';
@@ -100,9 +100,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Generic email sending method
-   */
+  
   async sendEmail(
     toEmail: string,
     subject: string,
@@ -146,9 +144,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order created email to user
-   */
+  
   async sendOrderCreatedEmail(order: any, user: any): Promise<void> {
     try {
       if (!user?.email) {
@@ -173,9 +169,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order assigned email to rider
-   */
+  
   async sendOrderAssignedEmail(
     order: any,
     user: any,
@@ -207,9 +201,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order accepted email to user
-   */
+  
   async sendOrderAcceptedEmail(
     order: any,
     user: any,
@@ -239,9 +231,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order started email to user
-   */
+  
   async sendOrderStartedEmail(
     order: any,
     user: any,
@@ -271,9 +261,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order completed email to user
-   */
+  
   async sendOrderCompletedEmail(
     order: any,
     user: any,
@@ -305,9 +293,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send order rejected email to user
-   */
+  
   async sendOrderRejectedEmail(
     order: any,
     user: any,
@@ -337,9 +323,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send receipt email with PDF attachment
-   */
+  
   async sendReceiptEmail(
     order: any,
     user: any,
@@ -360,7 +344,7 @@ export class MailService {
         'base64',
       );
 
-      // Convert PDF buffer to base64 for Mailjet
+      
       const pdfBase64 = receiptPDF.toString('base64');
       const fileName = `Receipt_${order.trackingCode || order.id.substring(0, 8)}.pdf`;
 
@@ -420,9 +404,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send withdrawal request email to user
-   */
+  
   async sendWithdrawalRequestEmail(
     withdrawalRequest: any,
     user: any,
@@ -452,9 +434,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send withdrawal approved email to user
-   */
+  
   async sendWithdrawalApprovedEmail(
     withdrawalRequest: any,
     user: any,
@@ -484,9 +464,7 @@ export class MailService {
     }
   }
 
-  /**
-   * Send withdrawal rejected email to user
-   */
+  
   async sendWithdrawalRejectedEmail(
     withdrawalRequest: any,
     user: any,

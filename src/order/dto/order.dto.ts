@@ -2,7 +2,7 @@ import { IsString, IsNumber, IsOptional, IsObject, IsArray, IsNotEmpty, IsBoolea
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-// Location interface: only address and coordinate
+
 class LocationCoordinateDto {
   @IsNumber()
   lat: number;
@@ -22,7 +22,7 @@ class LocationDto {
   coordinate: LocationCoordinateDto;
 }
 
-// Contact details interface: name, phoneNumber (required), email (optional)
+
 class ContactDetailsDto {
   @IsString()
   @IsNotEmpty()

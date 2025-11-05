@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/ws/entities/order-track.entity.ts
+
+
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 @Entity('order_track')
 export class OrderTrack {

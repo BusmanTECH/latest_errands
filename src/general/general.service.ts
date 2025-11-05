@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   BadRequestException,
@@ -18,7 +18,7 @@ export class GeneralService {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {
-    // Initialize Linode Object Storage (S3-compatible)
+    
     const accessKeyId = this.configService.get<string>('LINODE_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>(
       'LINODE_SECRET_ACCESS_KEY',
@@ -57,17 +57,13 @@ export class GeneralService {
     return this.authService.getCarModelDetails(make, model);
   }
 
-  /**
-   * Upload image file to Linode Object Storage
-   * @param file - Express.Multer.File object
-   * @returns URL of uploaded image
-   */
+  
   async uploadImage(file: Express.Multer.File): Promise<string> {
     if (!file) {
       throw new BadRequestException('Image file is required');
     }
 
-    // Validate file type
+    
     const allowedMimeTypes = [
       'image/jpeg',
       'image/jpg',
@@ -82,8 +78,8 @@ export class GeneralService {
       );
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    
+    const maxSize = 5 * 1024 * 1024; 
     if (file.size > maxSize) {
       throw new BadRequestException(
         `File size exceeds maximum allowed size of 5MB`,
@@ -96,7 +92,7 @@ export class GeneralService {
       );
     }
 
-    // Generate unique file name
+    
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = file.originalname.split('.').pop() || 'jpg';

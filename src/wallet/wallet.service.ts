@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   NotFoundException,
@@ -11,6 +11,8 @@ import { Repository } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { User, UserRole } from '../auth/entities/user.entity';
 import { WithdrawalRequest, WithdrawalStatus } from './entities/withdrawal-request.entity';
+import { TransactionService } from '../transaction/transaction.service';
+import { TransactionType, TransactionStatus } from '../transaction/entities/transaction.entity';
 
 @Injectable()
 export class WalletService {
@@ -21,6 +23,7 @@ export class WalletService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(WithdrawalRequest)
     private readonly withdrawalRequestRepo: Repository<WithdrawalRequest>,
+    private readonly transactionService: TransactionService,
   ) {}
 
   async createWallet(userId: string): Promise<Wallet> {
@@ -30,7 +33,7 @@ export class WalletService {
       throw new ForbiddenException('Wallet is only available for drivers');
     }
 
-    // Check if wallet already exists
+    
     const existingWallet = await this.walletRepo.findOne({
       where: { user: { id: userId } },
       relations: ['user'],
@@ -66,7 +69,7 @@ export class WalletService {
     });
 
     if (!wallet) {
-      // Create wallet if it doesn't exist
+      
       wallet = await this.createWallet(userId);
     }
 
@@ -87,7 +90,7 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    // Role check is done in getWallet
+    
     const wallet = await this.getWallet(userId);
     wallet.balance = Number(wallet.balance) + Number(amount);
     return this.walletRepo.save(wallet);
@@ -104,13 +107,13 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    // Role check is done in getWallet
+    
     const wallet = await this.getWallet(userId);
     const currentBalance = Number(wallet.balance);
     const amountNum = Number(amount);
 
     if (allowNegative && negativeLimit !== undefined) {
-      // Allow negative balance up to limit
+      
       const newBalance = currentBalance - amountNum;
       if (newBalance < negativeLimit) {
         throw new BadRequestException(
@@ -118,7 +121,7 @@ export class WalletService {
         );
       }
     } else {
-      // Standard debit - require sufficient balance
+      
       if (currentBalance < amountNum) {
         throw new BadRequestException('Insufficient wallet balance');
       }
@@ -135,7 +138,7 @@ export class WalletService {
     return this.creditWallet(userId, amount, 'Driver earnings from order');
   }
 
-  // Withdrawal Request Methods
+  
   async createWithdrawalRequest(
     userId: string,
     amount: number,
@@ -145,7 +148,7 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    // Check if user has wallet and sufficient balance
+    
     const wallet = await this.getWallet(userId);
     const currentBalance = Number(wallet.balance);
 
@@ -153,7 +156,7 @@ export class WalletService {
       throw new BadRequestException('Insufficient wallet balance');
     }
 
-    // Check if there's already a pending withdrawal request
+    
     const pendingRequest = await this.withdrawalRequestRepo.findOne({
       where: {
         userId,
@@ -167,7 +170,7 @@ export class WalletService {
       );
     }
 
-    // Create withdrawal request
+    
     const withdrawalRequest = this.withdrawalRequestRepo.create({
       userId,
       amount,
@@ -176,7 +179,42 @@ export class WalletService {
       status: WithdrawalStatus.PENDING,
     });
 
-    return await this.withdrawalRequestRepo.save(withdrawalRequest);
+    const savedRequest = await this.withdrawalRequestRepo.save(withdrawalRequest);
+
+    
+    try {
+      const transactionNarration = narration 
+        ? `${narration} (Withdrawal Request: ${savedRequest.id})`
+        : `Wallet withdrawal request (Withdrawal Request: ${savedRequest.id})`;
+      
+      const transactionReference = `TXN-WD-${savedRequest.id}-${Date.now()}`;
+
+      await this.transactionService.createTransaction({
+        driverId: userId,
+        type: TransactionType.DEBIT,
+        amount: amount,
+        currency: wallet.currency || 'NGN',
+        narration: transactionNarration,
+        status: TransactionStatus.INITIATED,
+        reference: transactionReference,
+      });
+
+      console.log('[WALLET_SERVICE] Transaction created for withdrawal request:', {
+        withdrawalRequestId: savedRequest.id,
+        driverId: userId,
+        amount: amount,
+        reference: transactionReference,
+      });
+    } catch (transactionError) {
+      console.error(
+        '[WALLET_SERVICE] Error creating transaction for withdrawal request:',
+        transactionError,
+      );
+      
+      
+    }
+
+    return savedRequest;
   }
 
   async getAllWithdrawalRequests(
@@ -257,7 +295,7 @@ export class WalletService {
       );
     }
 
-    // Check if user still has sufficient balance
+    
     const wallet = await this.getWallet(request.userId);
     const currentBalance = Number(wallet.balance);
 
@@ -267,19 +305,70 @@ export class WalletService {
       );
     }
 
-    // Debit the wallet
+    
     await this.debitWallet(
       request.userId,
       request.amount,
       request.narration || 'Wallet withdrawal',
     );
 
-    // Update request status
+    
     request.status = WithdrawalStatus.APPROVED;
     request.processedByUserId = adminUserId;
     request.processedAt = new Date();
 
-    return await this.withdrawalRequestRepo.save(request);
+    const savedRequest = await this.withdrawalRequestRepo.save(request);
+
+    
+    try {
+      
+      
+      const transactions = await this.transactionService.getTransactions(
+        request.userId,
+        {
+          type: TransactionType.DEBIT,
+          status: TransactionStatus.INITIATED,
+          page: 1,
+          pageSize: 100, 
+        },
+      );
+
+      
+      
+      const withdrawalTransaction = transactions.transactions.find((txn) =>
+        (txn.narration?.includes(`Withdrawal Request: ${request.id}`)) ||
+        (txn.reference?.includes(`WD-${request.id}`)),
+      );
+
+      if (withdrawalTransaction) {
+        await this.transactionService.updateTransactionStatus(
+          withdrawalTransaction.id,
+          TransactionStatus.SUCCESSFUL,
+          true, 
+        );
+
+        console.log('[WALLET_SERVICE] Transaction updated to SUCCESSFUL:', {
+          transactionId: withdrawalTransaction.id,
+          withdrawalRequestId: request.id,
+          driverId: request.userId,
+          amount: request.amount,
+        });
+      } else {
+        console.warn(
+          '[WALLET_SERVICE] Could not find transaction for withdrawal request:',
+          request.id,
+        );
+      }
+    } catch (transactionError) {
+      console.error(
+        '[WALLET_SERVICE] Error updating transaction status for withdrawal approval:',
+        transactionError,
+      );
+      
+      
+    }
+
+    return savedRequest;
   }
 
   async rejectWithdrawalRequest(
@@ -302,13 +391,64 @@ export class WalletService {
       );
     }
 
-    // Update request status
+    
     request.status = WithdrawalStatus.REJECTED;
     request.rejectionReason = rejectionReason;
     request.processedByUserId = adminUserId;
     request.processedAt = new Date();
 
-    return await this.withdrawalRequestRepo.save(request);
+    const savedRequest = await this.withdrawalRequestRepo.save(request);
+
+    
+    try {
+      
+      
+      const transactions = await this.transactionService.getTransactions(
+        request.userId,
+        {
+          type: TransactionType.DEBIT,
+          status: TransactionStatus.INITIATED,
+          page: 1,
+          pageSize: 100, 
+        },
+      );
+
+      
+      
+      const withdrawalTransaction = transactions.transactions.find((txn) =>
+        (txn.narration?.includes(`Withdrawal Request: ${request.id}`)) ||
+        (txn.reference?.includes(`WD-${request.id}`)),
+      );
+
+      if (withdrawalTransaction) {
+        await this.transactionService.updateTransactionStatus(
+          withdrawalTransaction.id,
+          TransactionStatus.CANCELLED,
+          false, 
+        );
+
+        console.log('[WALLET_SERVICE] Transaction updated to CANCELLED:', {
+          transactionId: withdrawalTransaction.id,
+          withdrawalRequestId: request.id,
+          driverId: request.userId,
+          rejectionReason: rejectionReason,
+        });
+      } else {
+        console.warn(
+          '[WALLET_SERVICE] Could not find transaction for withdrawal request:',
+          request.id,
+        );
+      }
+    } catch (transactionError) {
+      console.error(
+        '[WALLET_SERVICE] Error updating transaction status for withdrawal rejection:',
+        transactionError,
+      );
+      
+      
+    }
+
+    return savedRequest;
   }
 
   async getUserById(userId: string): Promise<User | null> {

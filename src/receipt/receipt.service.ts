@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable } from '@nestjs/common';
 const PDFDocument = require('pdfkit');
 import { Order } from '../order/entities/order.entity';
@@ -26,13 +26,13 @@ export class ReceiptService {
         });
         doc.on('error', (error) => reject(error));
 
-        // Invoice Design - Simple and Clean
+        
         const headerColor = '#000000';
         const darkGray = '#666666';
 
         let yPos = 50;
 
-        // Company name and Invoice header
+        
         doc
           .fontSize(24)
           .font('Helvetica-Bold')
@@ -47,7 +47,7 @@ export class ReceiptService {
 
         yPos += 40;
 
-        // Invoice number and date
+        
         const invoiceNum =
           order.trackingCode || order.id.substring(0, 8).toUpperCase();
         const invoiceDate = order.completeTime
@@ -79,7 +79,7 @@ export class ReceiptService {
 
         yPos += 50;
 
-        // Location Section
+        
         doc
           .fontSize(11)
           .font('Helvetica-Bold')
@@ -103,7 +103,7 @@ export class ReceiptService {
                 order.deliveryLocation.formatted ||
                 JSON.stringify(order.deliveryLocation);
 
-          // Truncate if too long
+          
           if (pickupAddress.length > 70) {
             pickupAddress = pickupAddress.substring(0, 67) + '...';
           }
@@ -128,7 +128,7 @@ export class ReceiptService {
           yPos += 40;
         }
 
-        // Driver Information
+        
         if (driver) {
           doc
             .fontSize(11)
@@ -168,7 +168,7 @@ export class ReceiptService {
           yPos += 40;
         }
 
-        // Payment and Amount Section
+        
         doc
           .fontSize(11)
           .font('Helvetica-Bold')
@@ -177,7 +177,7 @@ export class ReceiptService {
 
         yPos += 20;
 
-        // Payment Method
+        
         doc
           .fontSize(9)
           .font('Helvetica')
@@ -191,10 +191,10 @@ export class ReceiptService {
 
         yPos += 30;
 
-        // Total Amount - Highlighted
+        
         const totalAmount = Number(order.amount) || 0;
 
-        // Divider line
+        
         doc.moveTo(60, yPos).lineTo(552, yPos).stroke('#000000').lineWidth(1);
         yPos += 20;
 
@@ -215,18 +215,18 @@ export class ReceiptService {
 
         yPos += 60;
 
-        // Footer - Invoice style
+        
         const pageHeight = doc.page.height;
         const footerY = pageHeight - 40;
 
-        // Separator line
+        
         doc
           .moveTo(60, footerY - 25)
           .lineTo(552, footerY - 25)
           .stroke('#CCCCCC')
           .lineWidth(0.5);
 
-        // Thank you message
+        
         doc
           .fontSize(9)
           .font('Helvetica')

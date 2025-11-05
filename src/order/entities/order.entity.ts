@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -98,20 +98,20 @@ export class Order {
   @Column({ type: 'jsonb', nullable: true })
   deliveryLocation: any;
 
-  // PostGIS geometry for pickup coordinates
-  // Using text type - will be converted to PostGIS geometry in queries using ST_GeomFromText
+  
+  
   @Column({
     type: 'text',
     nullable: true,
   })
-  pickupCoordinates: string; // Stored as PostGIS geometry string, format: "POINT(longitude latitude)"
+  pickupCoordinates: string; 
 
-  // PostGIS geometry for delivery coordinates
+  
   @Column({
     type: 'text',
     nullable: true,
   })
-  deliveryCoordinates: string; // Stored as PostGIS geometry string, format: "POINT(longitude latitude)"
+  deliveryCoordinates: string; 
 
   @Column({ type: 'varchar', nullable: true })
   closeLandmark: string;

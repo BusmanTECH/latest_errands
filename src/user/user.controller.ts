@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Get,
@@ -98,7 +98,7 @@ export class UserController {
   @Post('/profile-picture')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 5 * 1024 * 1024 }, 
       fileFilter: (req, file, callback) => {
         const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
         if (!allowed.includes(file.mimetype)) {

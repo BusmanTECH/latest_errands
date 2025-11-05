@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Body,
   Controller,
@@ -110,7 +110,7 @@ export class DriverController {
   @Post('/profile-picture')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 5 * 1024 * 1024 }, 
       fileFilter: (req, file, callback) => {
         const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
         if (!allowed.includes(file.mimetype)) {
@@ -203,7 +203,7 @@ export class DriverController {
   @Post('/documents')
   @UseInterceptors(
     AnyFilesInterceptor({
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
+      limits: { fileSize: 5 * 1024 * 1024 }, 
       fileFilter: (req, file, callback) => {
         const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
         if (!allowed.includes(file.mimetype)) {
@@ -231,7 +231,7 @@ export class DriverController {
         });
       }
 
-      // Transform files array to object grouped by fieldname
+      
       const transformedFiles: {
         selfie?: Express.Multer.File[];
         driverLicense?: Express.Multer.File[];
@@ -279,7 +279,7 @@ export class DriverController {
         }
       });
 
-      // Debug logging
+      
       console.log('Transformed files before upload:', {
         hasSelfie: !!transformedFiles.selfie,
         selfieCount: transformedFiles.selfie?.length || 0,

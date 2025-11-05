@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/ws/delivery-request.gateway.ts
+
+
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, ConnectedSocket, SubscribeMessage, MessageBody, WsException } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketAuth } from './socket-auth.util';
@@ -18,12 +18,12 @@ export class DeliveryRequestGateway implements OnGatewayConnection {
     client.join(`rider:${user.sub}`);
   }
 
-  // Rider response to a specific order
+  
   @SubscribeMessage('delivery:respond')
   async respond(@ConnectedSocket() client: Socket, @MessageBody() body: { orderId: string; decision: 'ACCEPT'|'REJECT'; reason?: string }) {
     const riderId = client.data?.user?.sub;
     if (!riderId) throw new WsException('unauth');
-    // TODO: Implement order/ride acceptance/rejection logic
-    // Removed RidesService dependency - functionality needs to be reimplemented
+    
+    
   }
 }

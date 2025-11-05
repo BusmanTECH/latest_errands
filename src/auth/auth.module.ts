@@ -1,11 +1,11 @@
-/* eslint-disable prettier/prettier */
+
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HttpModule, HttpService } from '@nestjs/axios'; // Import HttpModule
+import { HttpModule, HttpService } from '@nestjs/axios'; 
 import { User } from './entities/user.entity';
 import { Card } from './entities/card.entity';
 import { DiverLicense } from './entities/license.entity';
@@ -24,22 +24,22 @@ import { MailModule } from 'src/mail/mail.module';
   imports: [
     TypeOrmModule.forFeature([User, Card, DiverLicense, Nin, Vehicle, ProfileImage, plateNum, LicenseImg, VehicleReg, ]),
     ConfigModule,
-    HttpModule, // Add HttpModule here
+    HttpModule, 
     MailModule,
     PassportModule.register({ defaultStrategy: 'jwt', session: false }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('ACCESS_TOKEN'),
-        // No expiration - tokens will not expire
+        
         signOptions: {},
       }),
       inject: [ConfigService],
     }),
   ],
-  exports: [TypeOrmModule, HttpModule,  AuthService, JwtModule, PassportModule], // Export HttpModule if needed in other modules
+  exports: [TypeOrmModule, HttpModule,  AuthService, JwtModule, PassportModule], 
   controllers: [AuthController],
-  providers: [AuthService, JwtModule, JwtStrategy], // Remove HttpService from providers
+  providers: [AuthService, JwtModule, JwtStrategy], 
 })
 export class AuthModule {}
 

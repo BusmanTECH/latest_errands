@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,7 +20,7 @@ import { ChargesModule } from './charges/charges.module';
 import { Charge } from './charges/entities/charge.entity';
 
 import { AdminModule } from './admin/admin.module';
-// import { ProfileModule } from './profile/profile.module';
+
 import { UserModule } from './user/user.module';
 import { DriverModule } from './driver/driver.module';
 import { GeneralModule } from './general/general.module';
@@ -43,8 +43,8 @@ import { PushToken } from './notification/entities/push-token.entity';
 import { RatingsModule } from './ratings/ratings.module';
 import { Rating } from './ratings/entities/rating.entity';
 import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
-// import { RealtimeModule } from './realtime/realtime.module';
-// import { OrdersFacadeModule } from './orders-facade/orders-facade.module';
+
+
 
 @Module({
   imports: [
@@ -57,7 +57,7 @@ import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get<string>('DATABASE_HOST'),
-        // host: configService.get<string>('DATABASE_DEV_HOST') || 'db', // Use 'db' as the default
+        
         port: configService.get<number>('DATABASE_PORT'),
         username: configService.get<string>('DATABASE_USERNAME'),
         password: configService.get<string>('DATABASE_PASSWORD'),
@@ -88,17 +88,17 @@ import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
           WithdrawalRequest,
         ],
         synchronize: true,
-        // Connection pool configuration
+        
         extra: {
-          max: 50, // Maximum number of clients in the pool
-          min: 2, // Minimum number of clients in the pool
-          idle_in_transaction_session_timeout: 30000, // Close idle connections after 30s
-          connectionTimeoutMillis: 10000, // Connection timeout
-          // Enable connection pooling properly
+          max: 50, 
+          min: 2, 
+          idle_in_transaction_session_timeout: 30000, 
+          connectionTimeoutMillis: 10000, 
+          
           keepAlive: true,
           keepAliveInitialDelayMillis: 10000,
         },
-        // migrations: ['src/migrations/*.ts'],
+        
       }),
     }),
     AuthModule,
@@ -118,8 +118,8 @@ import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
     CardModule,
     NotificationModule,
     RatingsModule,
-    // RealtimeModule,
-    // OrdersFacadeModule
+    
+    
   ],
   controllers: [AppController],
   providers: [AppService],

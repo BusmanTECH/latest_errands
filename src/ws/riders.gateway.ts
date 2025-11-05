@@ -1,5 +1,5 @@
-// src/ws/riders.gateway.ts
-/* eslint-disable prettier/prettier */
+
+
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, WsException } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketAuth } from './socket-auth.util';
@@ -11,7 +11,7 @@ import { SocketEmitter } from './socket-emitter.service';
 @WebSocketGateway({ namespace: '/ws/riders', cors: { origin: '*', credentials: true } })
 export class RidersGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  private heartbeats = new Map<string, number>(); // socket.id -> last ts
+  private heartbeats = new Map<string, number>(); 
 
   constructor(
     private auth: SocketAuth,
@@ -25,10 +25,10 @@ export class RidersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token = client.handshake.auth?.token as string;
       const user = this.auth.verify(token);
-      client.data.user = user; // {sub, email, role}
+      client.data.user = user; 
       if (user.role !== 'RIDER') throw new WsException('Only riders here');
 
-      // room rider:{driverId}
+      
       const driverId = user.sub;
       client.join(`rider:${driverId}`);
       this.emitter.emitRiderOnline(driverId);
@@ -44,14 +44,14 @@ export class RidersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.heartbeats.delete(client.id);
   }
 
-  // keepalive
+  
   @SubscribeMessage('pong')
   pong(@ConnectedSocket() client: Socket) {
     this.heartbeats.set(client.id, Date.now());
   }
 
   @SubscribeMessage('rider:online')
-  noop() { /* already handled on connect */ }
+  noop() {  }
 
   @SubscribeMessage('rider:location:update')
   async riderLocation(

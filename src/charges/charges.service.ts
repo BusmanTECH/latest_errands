@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/charges/charges.service.ts
+
+
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,8 +14,8 @@ export class ChargesService {
   ) {}
 
 
-  // Accepts a map of state names to fixed charges
-// src/charges/charges.service.ts
+  
+
 
 async setCharges(stateCharges: Record<string, Record<string, number>>): Promise<Charge> {
   let charge = await this.chargeRepo.findOne({ where: {} });
@@ -31,7 +31,7 @@ async setCharges(stateCharges: Record<string, Record<string, number>>): Promise<
 
 
 
-  // Retrieves the global charges
+  
   async getCharges(): Promise<Record<string, Record<string, number>>> {
     const charge = await this.chargeRepo.findOne({ where: {} });
     return charge?.stateCharges || {};
@@ -51,19 +51,19 @@ async setCharges(stateCharges: Record<string, Record<string, number>>): Promise<
     return charge.stateCharges || {};
   }
   
- // Sets the percentageCharge for the current configuration
+ 
  async setPercentageCharge(percentageCharge: number): Promise<Charge> {
   let charge = await this.chargeRepo.findOne({ where: {} });
 
   if (charge) {
-    // Update the existing charge config with the new percentageCharge
+    
     charge.percentageCharge = percentageCharge;
   } else {
-    // Create a new charge config if one does not exist
+    
     charge = this.chargeRepo.create({ percentageCharge, stateCharges: {} });
   }
 
-  // Save and return the updated or new charge config
+  
   return this.chargeRepo.save(charge);
 }  
   

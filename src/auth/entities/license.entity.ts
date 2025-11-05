@@ -1,4 +1,4 @@
-    /* eslint-disable prettier/prettier */
+    
     import {
         Entity,
         PrimaryGeneratedColumn,
@@ -25,7 +25,7 @@
         gender: string;
 
         @Column({ type: 'text', nullable: true })
-        photo?: string; // Base64 image string
+        photo?: string; 
 
         @Column({ type: 'date', nullable: false })
         issuedDate: string;

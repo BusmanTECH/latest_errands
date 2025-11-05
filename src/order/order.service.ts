@@ -13,7 +13,7 @@ import { Order } from './entities/order.entity';
 import { OrderSetting } from './entities/order-setting.entity';
 import { Location } from './entities/location.entity';
 import { User } from '../auth/entities/user.entity';
-// Simple OTP/reference generator
+
 const generateOTP = (
   length: number = 6,
   digitsOnly: boolean = false,
@@ -27,13 +27,13 @@ const generateOTP = (
   }
   return result;
 };
-// Mailer service - commented out until service is available
-// import { Mailer } from 'src/modules/services/mailer.service';
-// import TrackingMail from 'src/modules/services/mailers/templates/tracking-mail';
-// import NewOrderDriverMail from 'src/modules/services/mailers/templates/new-order-driver-mail';
-// import OrderAcceptedMail from 'src/modules/services/mailers/templates/order-accepted-mail';
-// import OrderStartedMail from 'src/modules/services/mailers/templates/order-started-mail';
-// import OrderCompletedMail from 'src/modules/services/mailers/templates/order-completed-mail';
+
+
+
+
+
+
+
 import { PaystackService } from '../services/paystack.service';
 import { PaymentService } from '../payment/payment.service';
 import {
@@ -67,7 +67,7 @@ export class OrderService {
     private readonly locationRepo: Repository<Location>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    // private mailerService: Mailer,
+    
     private paystackService: PaystackService,
     private paymentService: PaymentService,
     private walletService: WalletService,
@@ -122,7 +122,7 @@ export class OrderService {
 
     const trackingCode = `TRC-${generateOTP(6, false)}`;
 
-    // Convert coordinates to PostGIS format: POINT(longitude latitude)
+    
     const pickupCoords = payload.pickupCoordinates?.coordinates || [
       payload.pickupLocation?.coordinate?.lng,
       payload.pickupLocation?.coordinate?.lat,
@@ -132,7 +132,7 @@ export class OrderService {
       payload.deliveryLocation?.coordinate?.lat,
     ];
 
-    // Convert coordinates array to PostGIS POINT string format
+    
     const pickupPoint =
       pickupCoords && pickupCoords.length === 2
         ? `POINT(${pickupCoords[0]} ${pickupCoords[1]})`
@@ -142,17 +142,17 @@ export class OrderService {
         ? `POINT(${deliveryCoords[0]} ${deliveryCoords[1]})`
         : null;
 
-    // Get userId from payload (extract before spreading to avoid circular refs)
+    
     const userId = payload.user?.id || payload.user?.sub || payload.user?._id;
 
-    // Remove user object from payload to avoid circular JSON structure
+    
     const { user, ...orderPayload } = payload;
 
-    // Create order first to get order ID, then process payment
+    
     const orderData = this.orderRepo.create({
       ...orderPayload,
       trackingCode,
-      paymentStatus: 'PENDING' as any, // Will be updated after payment processing
+      paymentStatus: 'PENDING' as any, 
       pickupCoordinates: pickupPoint,
       deliveryCoordinates: deliveryPoint,
       userId: userId?.toString(),
@@ -163,12 +163,12 @@ export class OrderService {
     let paymentReference: string | undefined;
     let paymentStatus = 'PENDING';
 
-    // Handle payment based on payment method
+    
     if (payload.paymentMethod === 'card') {
-      // Validate and charge card immediately
+      
       const userId = payload.user?.id || payload.user?.sub || payload.user?._id;
       if (!userId) {
-        // Delete the created order if payment fails
+        
         await this.orderRepo.delete(newOrder.id);
         throw new BadRequestException('User ID is required for card payment');
       }
@@ -182,12 +182,12 @@ export class OrderService {
         paymentReference = paymentResult.reference;
         paymentStatus = 'SUCCESSFUL';
 
-        // Update order with payment status and reference
+        
         newOrder.paymentStatus = paymentStatus as any;
         newOrder.paymentReference = paymentReference;
         newOrder = await this.orderRepo.save(newOrder);
       } catch (error) {
-        // Delete the created order if payment fails
+        
         await this.orderRepo.delete(newOrder.id);
         throw new HttpException(
           error.message || 'Failed to process card payment',
@@ -195,8 +195,8 @@ export class OrderService {
         );
       }
     } else if (payload.paymentMethod === 'wallet') {
-      // Wallet payment: debit immediately
-      // Note: Wallet is currently only for RIDER role, so this might need adjustment
+      
+      
       const userId = payload.user?.id || payload.user?.sub || payload.user?._id;
       if (!userId) {
         await this.orderRepo.delete(newOrder.id);
@@ -204,7 +204,7 @@ export class OrderService {
       }
 
       try {
-        // Check wallet balance (only works for RIDER role currently)
+        
         const walletBalance = await this.walletService.getWalletBalance(
           userId.toString(),
         );
@@ -216,7 +216,7 @@ export class OrderService {
           );
         }
 
-        // Debit wallet
+        
         await this.walletService.debitWallet(
           userId.toString(),
           payload.amount,
@@ -225,7 +225,7 @@ export class OrderService {
 
         const reference = `WAL-${generateOTP(12, false)}`;
 
-        // Create PaymentTransaction for payment tracking
+        
         await this.paymentService.createTransaction({
           user: userId.toString(),
           amount: payload.amount,
@@ -238,7 +238,7 @@ export class OrderService {
           verifiedAt: new Date(),
         });
 
-        // Create Transaction record for transaction history
+        
         await this.transactionService.createTransaction({
           userId: userId.toString(),
           orderId: newOrder.id,
@@ -253,7 +253,7 @@ export class OrderService {
         paymentReference = reference;
         paymentStatus = 'SUCCESSFUL';
 
-        // Update order with payment status
+        
         newOrder.paymentStatus = paymentStatus as any;
         newOrder.paymentReference = paymentReference;
         newOrder = await this.orderRepo.save(newOrder);
@@ -265,9 +265,9 @@ export class OrderService {
         );
       }
     } else if (payload.paymentMethod === 'cash') {
-      // Cash payment: status remains PENDING until driver accepts and commission is deducted
+      
       paymentStatus = 'PENDING';
-      // Order already created with PENDING status, no update needed
+      
     } else {
       await this.orderRepo.delete(newOrder.id);
       throw new BadRequestException(
@@ -294,7 +294,7 @@ export class OrderService {
       },
     });
 
-    // Return order data without relations to avoid circular JSON structure
+    
     const orderResponse = {
       id: newOrder.id,
       trackingCode: newOrder.trackingCode,
@@ -328,13 +328,13 @@ export class OrderService {
       updatedAt: newOrder.updatedAt,
     };
 
-    // Send order created email to user
+    
     try {
       const orderUser = await this.userRepo.findOne({
         where: { id: userId?.toString() },
       });
       if (orderUser) {
-        // Reload order with relations for email
+        
         const orderForEmail = await this.orderRepo.findOne({
           where: { id: newOrder.id },
           relations: ['user'],
@@ -344,7 +344,7 @@ export class OrderService {
             orderForEmail,
             orderUser,
           );
-          // Send push and in-app notification
+          
           await this.notificationService.sendOrderNotification(
             userId?.toString(),
             NotificationType.ORDER_CREATED,
@@ -354,7 +354,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order created email:', emailError);
-      // Don't fail order creation if email fails
+      
     }
 
     return {
@@ -416,7 +416,7 @@ export class OrderService {
         break;
 
       default:
-        // For other status updates, send a generic notification
+        
         if (status !== order.status) {
           title = 'Order Status Updated';
           message = `Your order with tracking code ${order.trackingCode} status has been updated to: ${status}`;
@@ -425,17 +425,17 @@ export class OrderService {
         break;
     }
 
-    // Only send notification if we have a title and message
-    // TODO: Re-enable when notification service is available
-    // if (title && message) {
-    //   await this.notificationService.sendMessage({
-    //     user: userId,
-    //     title,
-    //     message,
-    //     type,
-    //     typeId: order.id,
-    //   });
-    // }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }
 
   async calculateCost(payload: any) {
@@ -491,7 +491,7 @@ export class OrderService {
         );
       }
 
-      // Add perishable surcharge if package category is perishable
+      
       let perishableSurcharge = 0;
       if (payload.packageCategory === 'perishable') {
         perishableSurcharge = 1000;
@@ -552,7 +552,7 @@ export class OrderService {
       order: { createdAt: 'DESC' },
     });
 
-    // Serialize orders to include vehicle info and avoid circular references
+    
     const serializedOrders = orders.map((order) => this.serializeOrder(order));
 
     return {
@@ -579,7 +579,7 @@ export class OrderService {
     const searchKeyword = sanitizedFilters.search;
     delete sanitizedFilters.search;
 
-    // Build search query if keyword exists
+    
     let query: any = { ...sanitizedFilters };
 
     if (searchKeyword) {
@@ -588,11 +588,11 @@ export class OrderService {
         { status: { $regex: searchKeyword, $options: 'i' } },
         { paymentStatus: { $regex: searchKeyword, $options: 'i' } },
         { paymentMethod: { $regex: searchKeyword, $options: 'i' } },
-        // Add more fields as needed
+        
       ];
     }
 
-    // Convert MongoDB query to TypeORM where clause
+    
     const whereClause: any = {};
     Object.keys(query).forEach((key) => {
       if (
@@ -605,7 +605,7 @@ export class OrderService {
       }
     });
 
-    // Handle $or queries (search functionality)
+    
     let searchCondition = null;
     if (query.$or && Array.isArray(query.$or)) {
       searchCondition = query.$or.map((condition: any) => {
@@ -629,7 +629,7 @@ export class OrderService {
       .skip(skip)
       .take(limit);
 
-    // Apply filters
+    
     if (Object.keys(whereClause).length > 0) {
       Object.keys(whereClause).forEach((key, index) => {
         if (index === 0) {
@@ -644,7 +644,7 @@ export class OrderService {
       });
     }
 
-    // Apply search conditions
+    
     if (searchCondition) {
       const searchKeys = Object.keys(searchCondition[0] || {});
       if (searchKeys.length > 0) {
@@ -659,7 +659,7 @@ export class OrderService {
     const orders = await queryBuilder.getMany();
     const totalOrders = await queryBuilder.getCount();
 
-    // Serialize orders to include vehicle and profile image info
+    
     const serializedOrders = orders.map((order) => this.serializeOrder(order));
 
     return {
@@ -677,7 +677,7 @@ export class OrderService {
   async driverOrders(driverId, status?: string) {
     const whereClause: any = { driverId: driverId?.toString() };
 
-    // Only add status filter if status is provided and not empty
+    
     if (status && status.trim() !== '') {
       whereClause.status = status.trim();
     }
@@ -694,7 +694,7 @@ export class OrderService {
       order: { createdAt: 'DESC' },
     });
 
-    // Serialize orders to include vehicle and profile image info
+    
     const serializedOrders = orders.map((order) => this.serializeOrder(order));
 
     return {
@@ -727,7 +727,7 @@ export class OrderService {
       order: { createdAt: 'DESC' },
     });
 
-    // Serialize orders to include vehicle info and avoid circular references
+    
     const serializedOrders = orders.map((order) => this.serializeOrder(order));
 
     return {
@@ -764,14 +764,14 @@ export class OrderService {
     });
   }
 
-  // Helper method to sanitize deliveryTypePricing to only include instant and schedule
+  
   private sanitizeDeliveryTypePricing(pricing: any): {
     instant: number;
     schedule: number;
   } {
     const sanitized: { instant?: number; schedule?: number } = {};
 
-    // Only keep instant and schedule, remove all other properties
+    
     if (pricing && typeof pricing === 'object') {
       if (typeof pricing.instant === 'number') {
         sanitized.instant = pricing.instant;
@@ -781,18 +781,18 @@ export class OrderService {
       }
     }
 
-    // Set defaults if missing
+    
     if (!sanitized.instant || sanitized.instant === 0) {
       sanitized.instant = 1000;
     }
     if (!sanitized.schedule || sanitized.schedule === 0) {
-      sanitized.schedule = 800; // Cheaper than instant
+      sanitized.schedule = 800; 
     }
 
     return sanitized as { instant: number; schedule: number };
   }
 
-  // Helper method to get or create default order settings
+  
   private async getOrCreateOrderSettings(): Promise<OrderSetting> {
     let settings = await this.orderSettingRepo.findOne({
       where: { isActive: true },
@@ -800,7 +800,7 @@ export class OrderService {
     });
 
     if (!settings) {
-      // Create default settings if none exist
+      
       const defaultSettings = this.orderSettingRepo.create({
         name: 'general',
         costPerKm: 180,
@@ -812,7 +812,7 @@ export class OrderService {
         isActive: true,
         deliveryTypePricing: {
           instant: 1000,
-          schedule: 800, // Schedule is cheaper than instant
+          schedule: 800, 
         },
         perKmPricing: {
           express: 250,
@@ -828,12 +828,12 @@ export class OrderService {
         defaultSettings,
       )) as unknown as OrderSetting;
     } else {
-      // Sanitize existing settings to remove old delivery types
+      
       const originalPricing = settings.deliveryTypePricing;
       const sanitizedPricing =
         this.sanitizeDeliveryTypePricing(originalPricing);
 
-      // Only update if the pricing was actually changed (had old properties)
+      
       const needsUpdate =
         originalPricing &&
         (originalPricing.hasOwnProperty('express') ||
@@ -854,7 +854,7 @@ export class OrderService {
   async getCurrentOrderSettings() {
     const settings = await this.getOrCreateOrderSettings();
 
-    // Settings are already sanitized by getOrCreateOrderSettings
+    
     return {
       success: true,
       message: 'Current pricing settings fetched successfully',
@@ -869,8 +869,8 @@ export class OrderService {
     });
 
     if (!settings) {
-      // Create new settings if none exist
-      // Ensure required fields have defaults if not provided
+      
+      
       const newSettingsData = {
         name: 'general',
         costPerKm: 180,
@@ -882,7 +882,7 @@ export class OrderService {
         isActive: true,
         deliveryTypePricing: {
           instant: 1000,
-          schedule: 800, // Schedule is cheaper than instant
+          schedule: 800, 
         },
         perKmPricing: {
           express: 250,
@@ -899,10 +899,10 @@ export class OrderService {
         newSettings,
       )) as unknown as OrderSetting;
     } else {
-      // Update existing settings
+      
       Object.assign(settings, updateData);
 
-      // Sanitize deliveryTypePricing if it was provided in updateData
+      
       if (updateData.deliveryTypePricing || settings.deliveryTypePricing) {
         const pricingToSanitize =
           updateData.deliveryTypePricing || settings.deliveryTypePricing;
@@ -959,7 +959,7 @@ export class OrderService {
         };
       }
 
-      // Serialize order to include vehicle and profile image info
+      
       const serializedOrder = this.serializeOrder(order);
 
       return {
@@ -993,11 +993,11 @@ export class OrderService {
       }
     }
 
-    // Update order fields
+    
     Object.assign(existingOrder, payload);
     const updatedOrder = await this.orderRepo.save(existingOrder);
 
-    // Reload with relations including driver vehicle and profile image
+    
     const orderWithRelations = await this.orderRepo.findOne({
       where: { id: updatedOrder.id },
       relations: [
@@ -1009,7 +1009,7 @@ export class OrderService {
       ],
     });
 
-    // If order is being completed, increment counters and handle wallet operations
+    
     if (payload.status === 'completed' && orderWithRelations) {
       try {
         if (orderWithRelations.userId) {
@@ -1030,19 +1030,19 @@ export class OrderService {
           }
         }
 
-        // Handle order completion wallet operations
+        
         await this.handleOrderCompletion(orderWithRelations);
 
-        // Generate and send receipt automatically
+        
         try {
           await this.generateAndSendReceipt(orderWithRelations);
         } catch (receiptError) {
           console.error('Error generating receipt:', receiptError);
-          // Don't throw error to avoid breaking the order completion
+          
         }
       } catch (error) {
         console.error('Error handling order completion:', error);
-        // Don't throw error to avoid breaking the order completion
+        
       }
     }
 
@@ -1054,13 +1054,13 @@ export class OrderService {
       }
     }
 
-    // Serialize order to avoid circular references before returning
+    
     return orderWithRelations
       ? this.serializeOrder(orderWithRelations)
       : updatedOrder;
   }
 
-  // Serialize order to avoid circular references
+  
   private serializeOrder(order: Order): any {
     return {
       id: order.id,
@@ -1150,15 +1150,15 @@ export class OrderService {
         paymentMethod: order?.paymentMethod,
       });
 
-      // Get order settings to calculate percentage
+      
       const orderSettings = await this.getOrCreateOrderSettings();
-      const orderPercentage = orderSettings.orderPercentage || 10; // Default 10%
+      const orderPercentage = orderSettings.orderPercentage || 10; 
 
-      // Calculate percentage amount (ensure numeric conversion)
+      
       const orderAmountNum = Number(order.amount);
       const percentageAmount = (orderAmountNum * orderPercentage) / 100;
 
-      // Extract driverId - handle both direct property and relation
+      
       let driverId: string | undefined;
       if (order.driverId) {
         driverId = order.driverId.toString();
@@ -1177,19 +1177,19 @@ export class OrderService {
           '[ORDER_COMPLETION] No driverId found in order:',
           order.id,
         );
-        return; // No driver assigned, skip processing
+        return; 
       }
 
       console.log('[ORDER_COMPLETION] Driver ID extracted:', driverId);
 
-      // Get driver to verify
+      
       const driver = await this.userRepo.findOne({
         where: { id: driverId, role: 'rider' as any },
       });
 
       if (!driver || !driver.id) {
         console.error('[ORDER_COMPLETION] Driver not found:', driverId);
-        return; // Driver not found, skip processing
+        return; 
       }
 
       const finalDriverId = driver.id.toString();
@@ -1203,13 +1203,13 @@ export class OrderService {
         commission: percentageAmount,
       });
 
-      // Generate transaction reference for commission
+      
       const commissionReference = `TXN-COMM-${generateOTP(12, false)}-${Date.now()}`;
 
-      // For cash payments: Commission was already deducted on acceptance, but create transaction record for tracking
-      // For card/wallet payments: Deduct commission now and create transaction, then fund rider
+      
+      
       if (order.paymentMethod === 'cash') {
-        // Commission was already deducted on acceptance, create transaction record for visibility
+        
         try {
           await this.transactionService.createTransaction({
             driverId: finalDriverId,
@@ -1230,10 +1230,10 @@ export class OrderService {
             error,
           );
         }
-        // No funding for cash payments
+        
         return;
       } else {
-        // For card/wallet payments: Deduct commission now
+        
         try {
           await this.walletService.debitWallet(
             finalDriverId,
@@ -1244,7 +1244,7 @@ export class OrderService {
             '[ORDER_COMPLETION] Commission deducted from driver wallet',
           );
 
-          // Create commission deduction transaction
+          
           await this.transactionService.createTransaction({
             driverId: finalDriverId,
             orderId: orderId,
@@ -1261,14 +1261,14 @@ export class OrderService {
             '[ORDER_COMPLETION] Error processing commission:',
             error,
           );
-          throw error; // Re-throw to prevent funding if commission fails
+          throw error; 
         }
 
-        // Fund rider: credit wallet with amount minus commission
+        
         const riderAmount = orderAmountNum - percentageAmount;
 
         try {
-          // Credit rider wallet
+          
           await this.walletService.creditWallet(
             finalDriverId,
             riderAmount,
@@ -1276,10 +1276,10 @@ export class OrderService {
           );
           console.log('[ORDER_COMPLETION] Rider wallet credited:', riderAmount);
 
-          // Generate transaction reference for rider funding
+          
           const fundingReference = `TXN-EARN-${generateOTP(12, false)}-${Date.now()}`;
 
-          // Create rider funding transaction
+          
           await this.transactionService.createTransaction({
             driverId: finalDriverId,
             orderId: orderId,
@@ -1305,17 +1305,17 @@ export class OrderService {
         error,
       );
       console.error('[ORDER_COMPLETION] Error stack:', error.stack);
-      // Don't throw error to avoid breaking the order update
+      
     }
   }
 
-  // async updateOrder(id: string, payload: any) {
-  //     return await this.orderModel.findByIdAndUpdate(
-  //         id,
-  //         payload,
-  //         { new: true }
-  //     ).exec();
-  // }
+  
+  
+  
+  
+  
+  
+  
 
   async updateOrderSettings(
     id: string,
@@ -1348,11 +1348,11 @@ export class OrderService {
     try {
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
-      const maxDistance = 20 * 1000; // 20km in meters
+      const maxDistance = 20 * 1000; 
 
-      // Note: This assumes User entity has a location field with PostGIS geometry
-      // For now, returning all online riders. Location-based filtering can be added
-      // if User entity has location coordinates stored
+      
+      
+      
       const riders = await this.userRepo.find({
         where: {
           role: 'rider' as any,
@@ -1369,7 +1369,7 @@ export class OrderService {
   async findNearbyOrder(latitude: string, longitude: string) {
     try {
       const status = 'new';
-      const maxDistanceKm = 20; // 20km
+      const maxDistanceKm = 20; 
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
 
@@ -1380,7 +1380,7 @@ export class OrderService {
         );
       }
 
-      // Fetch all orders with status 'new' that have pickupCoordinates
+      
       const orders = await this.orderRepo
         .createQueryBuilder('order')
         .where('order.status = :status', { status })
@@ -1388,12 +1388,12 @@ export class OrderService {
         .orderBy('order.createdAt', 'DESC')
         .getMany();
 
-      // Helper function to parse POINT string and extract coordinates
+      
       const parsePointString = (
         pointString: string,
       ): { lat: number; lng: number } | null => {
         try {
-          // Format: "POINT(longitude latitude)"
+          
           const match = pointString.match(/POINT\(([^\s]+)\s+([^\s]+)\)/);
           if (match) {
             const lng = parseFloat(match[1]);
@@ -1408,14 +1408,14 @@ export class OrderService {
         return null;
       };
 
-      // Haversine formula to calculate distance between two points in kilometers
+      
       const calculateDistance = (
         lat1: number,
         lng1: number,
         lat2: number,
         lng2: number,
       ): number => {
-        const R = 6371; // Earth's radius in kilometers
+        const R = 6371; 
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
         const dLng = ((lng2 - lng1) * Math.PI) / 180;
         const a =
@@ -1428,7 +1428,7 @@ export class OrderService {
         return R * c;
       };
 
-      // Filter orders within maxDistance
+      
       const nearbyOrders = orders
         .map((order) => {
           const coords = parsePointString(order.pickupCoordinates);
@@ -1439,7 +1439,7 @@ export class OrderService {
           return { order, distance };
         })
         .filter((item) => item !== null && item.distance <= maxDistanceKm)
-        .sort((a, b) => a.distance - b.distance) // Sort by distance (nearest first)
+        .sort((a, b) => a.distance - b.distance) 
         .map((item) => item.order);
 
       return nearbyOrders;
@@ -1464,7 +1464,7 @@ export class OrderService {
         throw new HttpException('No order with this id', HttpStatus.FORBIDDEN);
       }
 
-      // Check if order payment is already successful
+      
       if (theOrder.paymentStatus === 'SUCCESSFUL') {
         return {
           success: true,
@@ -1480,7 +1480,7 @@ export class OrderService {
 
       const reference = `REF-${generateOTP(12, false)}`;
 
-      // Paystack expects amount in kobo (multiply by 100)
+      
       const amountInKobo = Math.round(Number(theOrder.amount) * 100);
 
       const paymentPayload = {
@@ -1498,7 +1498,7 @@ export class OrderService {
       const paymentResponse =
         await this.paystackService.initializeTransaction(paymentPayload);
 
-      // Create transaction record
+      
       const transaction = await this.paymentService.createTransaction({
         user: payload.user.id || payload.user._id,
         orderId: payload.orderId,
@@ -1559,7 +1559,7 @@ export class OrderService {
     const apikey = process.env.GOOGLE_API;
     const { orderId, driverId } = payload;
 
-    // Fetch order and driver
+    
     const order = await this.orderRepo.findOne({ where: { id: orderId } });
     const driver = await this.userRepo.findOne({
       where: { id: driverId, role: 'rider' as any },
@@ -1569,17 +1569,17 @@ export class OrderService {
       throw new NotFoundException('Order or Driver not found');
     }
 
-    // Parse PostGIS POINT format: "POINT(lng lat)"
+    
     const parsePoint = (pointStr: string): [number, number] | null => {
       if (!pointStr) return null;
       const match = pointStr.match(/POINT\(([^ ]+) ([^ ]+)\)/);
       if (match) {
-        return [parseFloat(match[1]), parseFloat(match[2])]; // [lng, lat]
+        return [parseFloat(match[1]), parseFloat(match[2])]; 
       }
       return null;
     };
 
-    // Ensure order has pickup and delivery coordinates
+    
     if (!order.pickupCoordinates || !order.deliveryCoordinates) {
       throw new HttpException(
         'Order pickup or delivery coordinates not available',
@@ -1587,7 +1587,7 @@ export class OrderService {
       );
     }
 
-    // Parse coordinates from PostGIS format
+    
     const pickupCoords = parsePoint(order.pickupCoordinates);
     const deliveryCoords = parsePoint(order.deliveryCoordinates);
 
@@ -1598,16 +1598,16 @@ export class OrderService {
       );
     }
 
-    // For driver location, we'll need to get it from a location service or assume default
-    // Since User entity doesn't have location stored, using a placeholder
-    // In production, you'd get driver's current location from location service
-    const driverLat = 0; // Placeholder - get from location service
-    const driverLng = 0; // Placeholder - get from location service
+    
+    
+    
+    const driverLat = 0; 
+    const driverLng = 0; 
     const driverLatLng = `${driverLat},${driverLng}`;
 
-    // Convert PostGIS coordinates to "lat,lng" string for Distance Matrix API
-    const pickupLatLng = `${pickupCoords[1]},${pickupCoords[0]}`; // [lng, lat] -> lat,lng
-    const deliveryLatLng = `${deliveryCoords[1]},${deliveryCoords[0]}`; // [lng, lat] -> lat,lng
+    
+    const pickupLatLng = `${pickupCoords[1]},${pickupCoords[0]}`; 
+    const deliveryLatLng = `${deliveryCoords[1]},${deliveryCoords[0]}`; 
 
     const toPickup = await this.calculateDistance({
       pickupCoordinates: driverLatLng,
@@ -1626,8 +1626,8 @@ export class OrderService {
     return {
       distanceMatrix: {
         toPickup: {
-          distance: toPickup.rows[0].elements[0].distance.value / 1000, // in km
-          eta: toPickup.rows[0].elements[0].duration.value / 60, // in minutes
+          distance: toPickup.rows[0].elements[0].distance.value / 1000, 
+          eta: toPickup.rows[0].elements[0].duration.value / 60, 
         },
         toDelivery: {
           distance: toDelivery.rows[0].elements[0].distance.value / 1000,
@@ -1641,82 +1641,82 @@ export class OrderService {
     };
   }
 
-  // Listen for order status changes and emit via socket.io
-  // Note: MongoDB change streams are not available in PostgreSQL
-  // This method would need to be refactored to use PostgreSQL triggers or polling
-  // For now, keeping the method signature but implementation needs adjustment
+  
+  
+  
+  
   watchOrderStatusChange(io: Server) {
-    // PostgreSQL doesn't have change streams like MongoDB
-    // This would need to be implemented using:
-    // - Database triggers with NOTIFY/LISTEN
-    // - Polling mechanism
-    // - Event sourcing pattern
-    // Keeping method for compatibility, but functionality needs re-implementation
+    
+    
+    
+    
+    
+    
     console.warn(
       'watchOrderStatusChange: MongoDB change streams not available in PostgreSQL. This needs re-implementation.',
     );
   }
-  // private io: Server;
+  
 
-  // setSocketServer(io: Server) {
-  //     this.io = io;
-  // }
+  
+  
+  
 
-  // onModuleInit() {
-  //     this.watchOrderStatusChange();
-  // }
+  
+  
+  
 
-  // private watchOrderStatusChange() {
-  //     const changeStream = this.orderModel.watch([{ $match: { 'updateDescription.updatedFields.status': { $exists: true } } }]);
-  //     changeStream.on('change', async (change) => {
-  //         if (change.operationType === 'update' && change.updateDescription.updatedFields.status) {
-  //             const orderId = change.documentKey._id;
-  //             const order = await this.orderModel.findById(orderId)
-  //                 .populate({
-  //                     path: "user",
-  //                     select: "firstName lastName phone email photo"
-  //                 })
-  //                 .populate({
-  //                     path: "driver",
-  //                     select: "phone platenumber rating totalDelivery frontImage firstName photo"
-  //                 })
-  //                 .exec();
-  //             if (order && order.user && order.user._id && this.io) {
-  //                 this.io.emit(`order-${order.user._id}`, order);
-  //             }
-  //         }
-  //     });
-  // }
-  // }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  // async calculateDistance(payload: any){
+  
 
-  //     const apikey = process.env.GOOGLE_API;
-  //     console.log("the apikey--------------->>>", apikey, payload)
-  //     const origins = payload.pickupCoordinates;
-  //     const destinations = payload.deliveryCoordinates;
-  //     const params = {
-  //         key: apikey,
-  //         origins: origins,
-  //         destinations: destinations,
-  //         mode: 'driving',
-  //         unitSystem: 'imperial'
-  //     };
-  //     console.log("the params--------------->>>", params)
-  //     try {
-  //         const distance = await axios.get('https://maps.googleapis.com/maps/api/distancematrix/json', { params });
-  //         console.log("distance-------------------->>>", distance.data)
-  //         return distance.data;
-  //     } catch (error) {
-  //         console.log("-------------------->>>", error)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  //     }
-  // }
+  
+  
 
   async createMultipleOrders(payload: any) {
     const results = [];
     for (const delivery of payload.deliveries) {
-      // Calculate cost for each delivery
+      
       const costDistanceMatrix = await this.calculateCost({
         pickupCoordinates: `${payload.pickupLocation.coordinate.lat},${payload.pickupLocation.coordinate.lng}`,
         deliveryCoordinates: `${delivery.deliveryLocation.coordinate.lat},${delivery.deliveryLocation.coordinate.lng}`,
@@ -1735,7 +1735,7 @@ export class OrderService {
       const eta = costDistanceMatrix.data.eta;
       const cost = costDistanceMatrix.data.cost;
 
-      // Convert coordinates to PostGIS format
+      
       const pickupPoint = `POINT(${payload.pickupLocation.coordinate.lng} ${payload.pickupLocation.coordinate.lat})`;
       const deliveryPoint = `POINT(${delivery.deliveryLocation.coordinate.lng} ${delivery.deliveryLocation.coordinate.lat})`;
 
@@ -1749,7 +1749,7 @@ export class OrderService {
         distance: distance,
         eta: eta,
       };
-      // Remove deliveries array from orderData
+      
       delete orderData.deliveries;
       const result = await this.createOrder(orderData);
       results.push(result);
@@ -1789,32 +1789,32 @@ export class OrderService {
           (distancematrix.rows[0].elements[0].duration.value / 60).toFixed(2),
         );
 
-        // Normalize delivery type
+        
         const normalizedTypeRaw = (payload.deliveryType || 'instant')
           .toString()
           .toLowerCase();
         const normalizedDeliveryType =
           normalizedTypeRaw === 'schedule' ? 'schedule' : 'instant';
 
-        // Calculate base cost using perKm override if available
+        
         const perKmConfig = (orderSettings as any).perKmPricing || {};
         const perKm =
           typeof perKmConfig.normal === 'number'
             ? perKmConfig.normal
             : costPerKm;
 
-        // Calculate base cost with only minCost applied (no maxCost limit)
+        
         const calculatedCost = distance * perKm;
         const baseCost = Math.ceil(Math.max(minCost, calculatedCost));
 
-        // Add delivery type cost if deliveryType is provided
+        
         let deliveryTypeCost = 0;
         const typeCost = deliveryTypePricing[normalizedDeliveryType];
         if (typeof typeCost === 'number' && typeCost > 0) {
           deliveryTypeCost = typeCost;
         }
 
-        // Add perishable surcharge if package category is perishable
+        
         let perishableSurcharge = 0;
         if (payload.packageCategory === 'perishable') {
           perishableSurcharge = 1000;
@@ -1847,7 +1847,7 @@ export class OrderService {
       }
     }
 
-    // Calculate total perishable surcharge
+    
     const totalPerishableSurcharge =
       payload.packageCategory === 'perishable'
         ? 1000 * payload.deliveryCoords.length
@@ -1911,7 +1911,7 @@ export class OrderService {
       body.pickupCoords.longitude,
     );
 
-    // Calculate instant pricing
+    
     const instantResult = await this.calculateCost({
       ...basePayload,
       deliveryType: 'instant',
@@ -1919,7 +1919,7 @@ export class OrderService {
       weather: weather.condition,
     });
 
-    // Calculate schedule pricing
+    
     const scheduleResult = await this.calculateCost({
       ...basePayload,
       deliveryType: 'schedule',
@@ -2030,13 +2030,13 @@ export class OrderService {
       );
     }
 
-    // Get user ID from authenticated user object
+    
     const userId = user.id || user.sub || user._id?.toString();
     if (!userId) {
       throw new HttpException('User ID not found', HttpStatus.BAD_REQUEST);
     }
 
-    // If order is assigned, validate that the accepting rider is the assigned rider
+    
     if (order.status === 'assigned') {
       if (order.driverId !== userId?.toString()) {
         throw new HttpException(
@@ -2054,7 +2054,7 @@ export class OrderService {
       );
     }
 
-    // Check driver wallet limit before accepting order
+    
     try {
       const limitAmount = await this.paymentService.getBalanceLimit();
       const walletBalance = await this.walletService.getWalletBalance(
@@ -2070,7 +2070,7 @@ export class OrderService {
       if (error instanceof HttpException) {
         throw error;
       }
-      // If error checking limit, log but don't block order acceptance
+      
       console.error('Error checking wallet limit:', error);
     }
 
@@ -2083,14 +2083,14 @@ export class OrderService {
 
     try {
       if (newOrder.paymentMethod === 'cash') {
-        // Deduct commission from rider wallet for cash payments
+        
         const riderUserId = driver.id?.toString();
-        // Get user ID from order - could be populated or just ID reference
+        
         const orderUser = order.user;
         let userId: string | undefined;
 
         if (orderUser) {
-          // If user is populated (Mongoose document), get _id
+          
           if (typeof orderUser === 'object' && '_id' in orderUser) {
             userId = (orderUser as any)._id?.toString();
           } else if (typeof orderUser === 'object' && 'id' in orderUser) {
@@ -2107,21 +2107,21 @@ export class OrderService {
             orderId,
             riderUserId,
           );
-          // Update order payment status to SUCCESSFUL after commission deduction
+          
           await this.updateOrder(orderId, {
             paymentStatus: 'SUCCESSFUL',
           });
         }
       }
     } catch (paymentError) {
-      // Log error but don't fail the order acceptance
+      
       console.error(
         'Error processing payment on order acceptance:',
         paymentError,
       );
     }
 
-    // Format response with driver and vehicle information (use driver profile which has all relations loaded)
+    
     const driverInfo = driver
       ? {
           id: driver.id,
@@ -2130,7 +2130,7 @@ export class OrderService {
           phoneNumber: driver.phoneNumber,
           email: driver.email,
           averageRating: driver.averageRating,
-          selfie: driver.profileImage?.url || null, // Selfie image
+          selfie: driver.profileImage?.url || null, 
           vehicle: driver.vehicle
             ? {
                 id: driver.vehicle.id,
@@ -2147,7 +2147,7 @@ export class OrderService {
         }
       : null;
 
-    // Send order accepted email and notification to user
+    
     try {
       if (newOrder.user && driver) {
         await this.mailService.sendOrderAcceptedEmail(
@@ -2155,7 +2155,7 @@ export class OrderService {
           newOrder.user,
           driver,
         );
-        // Send push and in-app notification
+        
         if (newOrder.userId) {
           await this.notificationService.sendOrderNotification(
             newOrder.userId.toString(),
@@ -2167,7 +2167,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order accepted email:', emailError);
-      // Don't fail order acceptance if email fails
+      
     }
 
     return {
@@ -2202,9 +2202,9 @@ export class OrderService {
       );
     }
 
-    // Handle payment refund if payment was successful
+    
     if (order.paymentStatus === 'SUCCESSFUL') {
-      // If payment method is wallet, refund to user wallet
+      
       if (order.paymentMethod === 'wallet') {
         const userId =
           typeof order.user === 'object' && '_id' in order.user
@@ -2214,9 +2214,9 @@ export class OrderService {
           await this.walletService.creditWallet(userId, Number(order.amount));
         }
       } else if (order.paymentMethod === 'card') {
-        // For card payments, process Paystack refund
+        
         try {
-          // Find the transaction to get the reference
+          
           const transaction =
             await this.paymentService.findTransactionByOrderId(
               order.id.toString(),
@@ -2236,16 +2236,16 @@ export class OrderService {
         }
       }
 
-      // If order has a driver and payment method is not cash, debit driver's wallet (reverse the credit)
+      
       if (order.driverId && order.paymentMethod !== 'cash') {
         try {
-          // Extract driver ID - use driverId field (most reliable)
-          // Fallback to extracting from driver relation object if driverId is not available
+          
+          
           let driverId: string;
           if (order.driverId) {
             driverId = order.driverId.toString();
           } else if (order.driver) {
-            // Handle case where driver is a populated relation object
+            
             if (typeof order.driver === 'object' && order.driver !== null) {
               driverId =
                 (order.driver as any).id?.toString() ||
@@ -2260,18 +2260,18 @@ export class OrderService {
             return;
           }
 
-          // Get driver profile by driver ID (which is the user ID in TypeORM)
+          
           const driverUser =
             await this.driverService.getDriverProfile(driverId);
           if (driverUser && driverUser.id) {
-            // Debit the amount that was credited to driver
+            
             const limitAmount = await this.paymentService.getBalanceLimit();
             await this.walletService.debitWallet(
               driverUser.id.toString(),
               Number(order.amount),
               'Order cancellation - reversing earnings',
-              true, // allowNegative
-              limitAmount, // negativeLimit
+              true, 
+              limitAmount, 
             );
           }
         } catch (error) {
@@ -2305,7 +2305,7 @@ export class OrderService {
       throw new HttpException('User ID not found', HttpStatus.BAD_REQUEST);
     }
 
-    // Check if user owns the order
+    
     const orderUserId =
       typeof order.user === 'object' && 'id' in order.user
         ? (order.user as any).id?.toString()
@@ -2337,19 +2337,19 @@ export class OrderService {
         );
       }
 
-      // Debit wallet
+      
       await this.walletService.debitWallet(
         userId,
         order.amount,
         'Order payment via wallet',
       );
 
-      // Create transaction reference for wallet payment
+      
       const transactionReference = `WAL-${generateOTP(12, false)}`;
 
-      // Create PaymentTransaction for payment tracking
+      
       await this.paymentService.createTransaction({
-        user: userId, // PaymentService will handle user lookup
+        user: userId, 
         orderId: orderId,
         amount: order.amount,
         reference: transactionReference,
@@ -2360,7 +2360,7 @@ export class OrderService {
         verifiedAt: new Date(),
       });
 
-      // Create Transaction record for transaction history
+      
       await this.transactionService.createTransaction({
         userId: userId,
         orderId: orderId,
@@ -2375,24 +2375,24 @@ export class OrderService {
       if (error instanceof HttpException) {
         throw error;
       }
-      // If wallet doesn't exist or other error, throw
+      
       throw new HttpException(
         error.message || 'Failed to process wallet payment',
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    // Update order payment status and method
+    
     const updatedOrder = await this.updateOrder(orderId, {
       paymentStatus: 'SUCCESSFUL',
       paymentMethod: 'wallet',
       paidAt: new Date(),
     });
 
-    // Credit driver ledger now (non-cash flow) so funds are held until completion
+    
     if (updatedOrder && updatedOrder.driver) {
       try {
-        // Get driver profile by driver ID
+        
         const driverRecord = await this.driverService.getDriverProfile(
           updatedOrder.driver.toString(),
         );
@@ -2451,7 +2451,7 @@ export class OrderService {
       );
     }
 
-    // Get user ID from authenticated user object
+    
     const userId = user.id || user.sub || user._id?.toString();
     if (!userId) {
       throw new HttpException('User ID not found', HttpStatus.BAD_REQUEST);
@@ -2463,7 +2463,7 @@ export class OrderService {
     };
     const newOrder = await this.updateOrder(orderId, payload);
 
-    // Send order started email and notification to user
+    
     try {
       if (newOrder.user && newOrder.driver) {
         await this.mailService.sendOrderStartedEmail(
@@ -2471,7 +2471,7 @@ export class OrderService {
           newOrder.user,
           newOrder.driver,
         );
-        // Send push and in-app notification
+        
         if (newOrder.userId) {
           await this.notificationService.sendOrderNotification(
             newOrder.userId.toString(),
@@ -2482,7 +2482,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order started email:', emailError);
-      // Don't fail order start if email fails
+      
     }
 
     return {
@@ -2514,7 +2514,7 @@ export class OrderService {
       );
     }
 
-    // Get user ID from authenticated user object
+    
     const userId = user.id || user.sub || user._id?.toString();
     if (!userId) {
       throw new HttpException('User ID not found', HttpStatus.BAD_REQUEST);
@@ -2526,10 +2526,10 @@ export class OrderService {
     };
     const newOrder = await this.updateOrder(orderId, payload);
 
-    // Handle order completion wallet operations
+    
     await this.handleOrderCompletion(newOrder);
 
-    // Send order completed email and notification to user
+    
     try {
       if (newOrder.user && newOrder.driver) {
         await this.mailService.sendOrderCompletedEmail(
@@ -2537,7 +2537,7 @@ export class OrderService {
           newOrder.user,
           newOrder.driver,
         );
-        // Send push and in-app notification
+        
         if (newOrder.userId) {
           await this.notificationService.sendOrderNotification(
             newOrder.userId.toString(),
@@ -2548,7 +2548,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order completed email:', emailError);
-      // Don't fail order completion if email fails
+      
     }
 
     return {
@@ -2559,7 +2559,7 @@ export class OrderService {
   }
 
   async assignOrderToRider(orderId: string, riderId: string, user: any) {
-    // Validate and normalize UUIDs
+    
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -2580,7 +2580,7 @@ export class OrderService {
       );
     }
 
-    // Validate order exists and belongs to user
+    
     const order = await this.orderRepo.findOne({
       where: { id: normalizedOrderId },
       relations: ['user'],
@@ -2598,7 +2598,7 @@ export class OrderService {
       );
     }
 
-    // Validate order status
+    
     if (order.status !== 'new' && order.status !== 'assigned') {
       throw new HttpException(
         `Order cannot be assigned as it is in '${order.status}' status`,
@@ -2606,7 +2606,7 @@ export class OrderService {
       );
     }
 
-    // Validate rider exists, is approved, and has 'rider' role
+    
     const rider = await this.userRepo.findOne({
       where: { id: normalizedRiderId },
     });
@@ -2629,14 +2629,14 @@ export class OrderService {
       );
     }
 
-    // Update order: set driverId, set status to 'assigned'
+    
     const payload = {
       driverId: normalizedRiderId,
       status: 'assigned',
     };
     const updatedOrder = await this.updateOrder(normalizedOrderId, payload);
 
-    // Send assignment email and notification to rider
+    
     try {
       if (updatedOrder.user && updatedOrder.driver) {
         await this.mailService.sendOrderAssignedEmail(
@@ -2644,7 +2644,7 @@ export class OrderService {
           updatedOrder.user,
           updatedOrder.driver,
         );
-        // Send push and in-app notification to rider
+        
         if (normalizedRiderId) {
           const customerName =
             order.user?.firstName && order.user?.lastName
@@ -2660,7 +2660,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order assigned email:', emailError);
-      // Don't fail assignment if email fails
+      
     }
 
     return {
@@ -2671,13 +2671,13 @@ export class OrderService {
   }
 
   async rejectAssignedOrder(orderId: string, rider: any) {
-    // Validate rider has 'rider' role
+    
     const riderId = rider.id || rider.sub || rider._id?.toString();
     if (!riderId) {
       throw new HttpException('Rider ID not found', HttpStatus.BAD_REQUEST);
     }
 
-    // Get order with relations before clearing driverId
+    
     const order = await this.orderRepo.findOne({
       where: { id: orderId },
       relations: [
@@ -2693,7 +2693,7 @@ export class OrderService {
       throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
     }
 
-    // Validate order is assigned to this rider
+    
     if (order.driverId !== riderId) {
       throw new HttpException(
         'This order is not assigned to you',
@@ -2701,7 +2701,7 @@ export class OrderService {
       );
     }
 
-    // Validate order status is 'assigned'
+    
     if (order.status !== 'assigned') {
       throw new HttpException(
         `Order cannot be rejected as it is in '${order.status}' status`,
@@ -2709,18 +2709,18 @@ export class OrderService {
       );
     }
 
-    // Store rider info for email before clearing
+    
     const riderInfo = order.driver;
     const userInfo = order.user;
 
-    // Update order: clear driverId (set to null), set status back to 'new'
+    
     const payload = {
       driverId: null,
       status: 'new',
     };
     const updatedOrder = await this.updateOrder(orderId, payload);
 
-    // Send rejection email and notification to user
+    
     try {
       if (userInfo && riderInfo) {
         await this.mailService.sendOrderRejectedEmail(
@@ -2728,7 +2728,7 @@ export class OrderService {
           userInfo,
           riderInfo,
         );
-        // Send push and in-app notification to user
+        
         if (order.userId) {
           await this.notificationService.sendOrderNotification(
             order.userId.toString(),
@@ -2739,7 +2739,7 @@ export class OrderService {
       }
     } catch (emailError) {
       console.error('Error sending order rejected email:', emailError);
-      // Don't fail rejection if email fails
+      
     }
 
     return {
@@ -2752,7 +2752,7 @@ export class OrderService {
   async getAssignedOrders(riderId: string, status?: string) {
     const whereClause: any = { driverId: riderId?.toString() };
 
-    // If status is provided, filter by it; otherwise default to 'assigned'
+    
     if (status && status.trim() !== '') {
       whereClause.status = status.trim();
     } else {
@@ -2771,7 +2771,7 @@ export class OrderService {
       order: { createdAt: 'DESC' },
     });
 
-    // Serialize orders to include vehicle and profile image info
+    
     const serializedOrders = orders.map((order) => this.serializeOrder(order));
 
     return {
@@ -2781,9 +2781,7 @@ export class OrderService {
     };
   }
 
-  /**
-   * Generate and send receipt for completed order (automatic)
-   */
+  
   private async generateAndSendReceipt(order: Order): Promise<void> {
     try {
       if (!order.user) {
@@ -2804,14 +2802,12 @@ export class OrderService {
     }
   }
 
-  /**
-   * Generate receipt for order on-demand (with access control)
-   */
+  
   async generateReceiptForOrder(
     orderId: string,
     requestingUser: any,
   ): Promise<{ success: boolean; message: string }> {
-    // Find order with relations
+    
     const order = await this.orderRepo.findOne({
       where: { id: orderId },
       relations: [
@@ -2827,14 +2823,14 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
 
-    // Check if order is completed
+    
     if (order.status !== 'completed') {
       throw new BadRequestException(
         'Receipt can only be generated for completed orders',
       );
     }
 
-    // Access control
+    
     const userId =
       requestingUser.id || requestingUser.sub || requestingUser._id;
     const userRole = requestingUser.role || requestingUser.roles?.[0];
@@ -2855,14 +2851,14 @@ export class OrderService {
         throw new BadRequestException('Order user information not found');
       }
 
-      // Generate PDF receipt
+      
       const receiptPDF = await this.receiptService.generateReceiptPDF(
         order,
         order.user,
         order.driver || null,
       );
 
-      // Send receipt email
+      
       await this.mailService.sendReceiptEmail(order, order.user, receiptPDF);
 
       return {

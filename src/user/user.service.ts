@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   NotFoundException,
@@ -33,7 +33,7 @@ export class UserService {
     const region = this.configService.get<string>('LINODE_REGION');
     const bucketName = this.configService.get<string>('LINODE_BUCKET_NAME');
 
-    // Initialize S3 only if all credentials are provided
+    
     if (accessKeyId && secretAccessKey && endpoint && region && bucketName) {
       this.s3 = new AWS.S3({
         endpoint: endpoint,
@@ -41,12 +41,12 @@ export class UserService {
         accessKeyId: accessKeyId,
         secretAccessKey: secretAccessKey,
         signatureVersion: 'v4',
-        s3ForcePathStyle: true, // Required for Linode Object Storage
-        credentials: new AWS.Credentials(accessKeyId, secretAccessKey), // Explicitly set credentials to prevent metadata service lookup
+        s3ForcePathStyle: true, 
+        credentials: new AWS.Credentials(accessKeyId, secretAccessKey), 
       });
       this.bucketName = bucketName;
     } else {
-      // Log warning but don't throw - allows app to start without file upload functionality
+      
       const missing = [
         !accessKeyId && 'LINODE_ACCESS_KEY_ID',
         !secretAccessKey && 'LINODE_SECRET_ACCESS_KEY',
@@ -69,7 +69,7 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Use the stored averageRating from user entity
+    
     const averageRating = Number(user.averageRating) || 0;
 
     return {
@@ -138,13 +138,13 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    // Verify the old password
+    
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isPasswordValid) {
       throw new BadRequestException('Incorrect old password');
     }
 
-    // Hash the new password
+    
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedNewPassword;
     await this.userRepo.save(user);

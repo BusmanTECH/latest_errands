@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Get,
@@ -22,13 +22,13 @@ import { SendAdminNotificationDto } from './dto/send-admin-notification.dto';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  // ========== DASHBOARD ==========
+  
   @Get('dashboard')
   async getDashboardStats() {
     return this.adminService.getDashboardStats();
   }
 
-  // ========== USER MANAGEMENT ==========
+  
   @Get('users')
   async getAllUsers(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -66,7 +66,7 @@ export class AdminController {
     return this.adminService.rejectUser(id);
   }
 
-  // ========== DRIVER MANAGEMENT ==========
+  
   @Get('drivers')
   async getAllDrivers(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -96,7 +96,7 @@ export class AdminController {
     return this.adminService.toggleDriverOnlineStatus(id);
   }
 
-  // ========== ORDER MANAGEMENT ==========
+  
   @Get('orders')
   async getAllOrders(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -142,7 +142,7 @@ export class AdminController {
     return this.adminService.cancelOrder(id);
   }
 
-  // ========== TRANSACTION MANAGEMENT ==========
+  
   @Get('transactions')
   async getAllTransactions(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -162,13 +162,13 @@ export class AdminController {
     });
   }
 
-  // ========== NOTIFICATION MANAGEMENT ==========
+  
   @Post('notifications/send')
   async sendNotification(@Body() dto: SendAdminNotificationDto) {
     return this.adminService.sendAdminNotification(dto);
   }
 
-  // ========== DELETED ACCOUNTS MANAGEMENT ==========
+  
   @Get('deleted-accounts')
   async getDeletedAccounts(
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,

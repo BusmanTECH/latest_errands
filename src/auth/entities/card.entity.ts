@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {  Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 
@@ -20,7 +20,7 @@ export class Card{
     card_digit : string;
 
     @Column({ type: 'varchar', length: 255, nullable: true })
-    authorization_code?: string; // Paystack authorization code for charging saved cards
+    authorization_code?: string; 
 
 
     constructor(card :Partial<Card>){

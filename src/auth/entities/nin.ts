@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
     Entity,
     PrimaryGeneratedColumn,
@@ -26,8 +26,8 @@ export class Nin {
     @Column({ type: 'varchar', nullable: true })
     gender?: string;
 
-    // @Column({ type: 'text', nullable: true })
-    // photo?: string; // Base64 image string
+    
+    
 
     @Column({ type: "enum", enum: RiderType, default: RiderType.REST, nullable: false })
     riderType: RiderType;

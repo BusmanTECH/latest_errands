@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   NotFoundException,
@@ -32,18 +32,18 @@ export class AdminService {
     private readonly mailService: MailService,
   ) {}
 
-  // ========== USER MANAGEMENT ==========
+  
   async getAllUsers(page: number = 1, limit: number = 20, search?: string) {
     const skip = (page - 1) * limit;
 
-    // Build where conditions - exclude admin users and deleted accounts
+    
     const where: any = { 
       role: Not(UserRole.ADMIN),
-      deletedAt: null, // Exclude deleted accounts
+      deletedAt: null, 
     };
 
     if (!search) {
-      // Simple case: no search, use findAndCount directly
+      
       const [data, total] = await this.userRepository.findAndCount({
         where,
         relations: ['profileImage'],
@@ -61,15 +61,15 @@ export class AdminService {
       };
     }
 
-    // With search: fetch all matching records, then paginate in memory
-    // This is necessary because repository find doesn't support ILIKE searches directly
+    
+    
     const [allData] = await this.userRepository.findAndCount({
       where,
       relations: ['profileImage'],
       order: { createdAt: 'DESC' } as any,
     });
 
-    // Filter by search
+    
     const searchLower = search.toLowerCase();
     const filteredData = allData.filter(
       (user) =>
@@ -79,7 +79,7 @@ export class AdminService {
         user.phoneNumber?.toLowerCase().includes(searchLower),
     );
 
-    // Apply pagination
+    
     const paginatedData = filteredData.slice(skip, skip + limit);
 
     return {
@@ -144,7 +144,7 @@ export class AdminService {
   async getDeletedAccounts(page: number = 1, limit: number = 20, search?: string) {
     const skip = (page - 1) * limit;
 
-    // Build where condition to find deleted accounts
+    
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
       .where('user.deletedAt IS NOT NULL')
@@ -153,7 +153,7 @@ export class AdminService {
       .skip(skip)
       .take(limit);
 
-    // Apply search if provided
+    
     if (search && search.trim() !== '') {
       const searchLower = search.toLowerCase();
       queryBuilder.andWhere(
@@ -189,7 +189,7 @@ export class AdminService {
       throw new BadRequestException('Account is not deleted');
     }
 
-    // Restore account by clearing deletion fields
+    
     user.deletedAt = null;
     user.deletedReason = null;
     user.deletedBy = null;
@@ -217,22 +217,22 @@ export class AdminService {
     return this.sanitizeUser(await this.userRepository.save(user));
   }
 
-  // ========== DRIVER MANAGEMENT ==========
+  
   async getAllDrivers(page: number = 1, limit: number = 20, search?: string) {
     const skip = (page - 1) * limit;
 
-    // Build where conditions - exclude deleted accounts
+    
     const where: any = { 
       role: UserRole.RIDER,
-      deletedAt: null, // Exclude deleted accounts
+      deletedAt: null, 
     };
 
     if (!search) {
-      // Simple case: no search, use findAndCount directly
+      
       const [data, total] = await this.userRepository.findAndCount({
         where,
         relations: ['profileImage', 'vehicle'],
-        // order: { createdAt: 'DESC' } as any,
+        
         skip,
         take: limit,
       });
@@ -246,15 +246,15 @@ export class AdminService {
       };
     }
 
-    // With search: fetch all matching records, then paginate in memory
-    // This is necessary because repository find doesn't support ILIKE searches directly
+    
+    
     const [allData] = await this.userRepository.findAndCount({
       where,
       relations: ['profileImage', 'vehicle'],
       order: { createdAt: 'DESC' } as any,
     });
 
-    // Filter by search
+    
     const searchLower = search.toLowerCase();
     const filteredData = allData.filter(
       (user) =>
@@ -264,7 +264,7 @@ export class AdminService {
         user.phoneNumber?.toLowerCase().includes(searchLower),
     );
 
-    // Apply pagination
+    
     const paginatedData = filteredData.slice(skip, skip + limit);
 
     return {
@@ -320,7 +320,7 @@ export class AdminService {
     return this.sanitizeUser(await this.userRepository.save(driver));
   }
 
-  // ========== ORDER MANAGEMENT ==========
+  
   async getAllOrders(
     page: number = 1,
     limit: number = 20,
@@ -364,7 +364,7 @@ export class AdminService {
       });
     }
 
-    // Clone query builder for count (without joins for better performance)
+    
     const countQueryBuilder = this.orderRepository.createQueryBuilder('order');
 
     if (filters?.status) {
@@ -451,7 +451,7 @@ export class AdminService {
     order.status = OrderStatus.ASSIGNED;
     const saved = await this.orderRepository.save(order);
 
-    // Reload with relations
+    
     const updatedOrder = await this.orderRepository.findOne({
       where: { id: orderId },
       relations: ['user', 'driver', 'driver.vehicle', 'driver.profileImage'],
@@ -471,7 +471,7 @@ export class AdminService {
     return this.serializeOrder(saved);
   }
 
-  // ========== TRANSACTION MANAGEMENT ==========
+  
   async getAllTransactions(
     page: number = 1,
     limit: number = 20,
@@ -516,7 +516,7 @@ export class AdminService {
       );
     }
 
-    // Clone query builder for count (without joins for better performance)
+    
     const countQueryBuilder =
       this.transactionRepository.createQueryBuilder('transaction');
 
@@ -566,7 +566,7 @@ export class AdminService {
     };
   }
 
-  // ========== STATISTICS ==========
+  
   async getDashboardStats() {
     const [
       totalUsers,
@@ -628,7 +628,7 @@ export class AdminService {
     };
   }
 
-  // ========== NOTIFICATION MANAGEMENT ==========
+  
   async sendAdminNotification(dto: SendAdminNotificationDto) {
     const {
       recipientType,
@@ -643,7 +643,7 @@ export class AdminService {
       data,
     } = dto;
 
-    // Get target users based on recipient type
+    
     let targetUsers: User[] = [];
 
     switch (recipientType) {
@@ -705,7 +705,7 @@ export class AdminService {
       };
     }
 
-    // Send notifications to all target users
+    
     const results = {
       emailSent: 0,
       pushSent: 0,
@@ -714,7 +714,7 @@ export class AdminService {
       errors: [] as string[],
     };
 
-    // Process notifications in parallel with batching
+    
     const batchSize = 10;
     for (let i = 0; i < targetUsers.length; i += batchSize) {
       const batch = targetUsers.slice(i, i + batchSize);
@@ -722,7 +722,7 @@ export class AdminService {
       await Promise.all(
         batch.map(async (user) => {
           try {
-            // Send email if enabled
+            
             if (sendEmail && user.email) {
               try {
                 await this.mailService.sendEmail(
@@ -750,7 +750,7 @@ export class AdminService {
               }
             }
 
-            // Send push notification if enabled
+            
             if (sendPush) {
               try {
                 await this.notificationService.sendPushNotification(
@@ -776,7 +776,7 @@ export class AdminService {
               }
             }
 
-            // Create in-app notification if enabled
+            
             if (sendInApp) {
               try {
                 const notificationType = type && Object.values(NotificationType).includes(type as any)
@@ -834,7 +834,7 @@ export class AdminService {
     };
   }
 
-  // ========== HELPER METHODS ==========
+  
   private sanitizeUser(user: User) {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;

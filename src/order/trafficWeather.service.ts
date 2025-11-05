@@ -78,7 +78,7 @@ export class TrafficWeatherService {
         const isRain = conditions.includes('rain') || precipitationChance >= 30;
         return { condition: isRain ? 'rain' : 'clear', raw: data } as const;
       } catch (e) {
-        // Continue to fallback
+        
       }
     }
 
@@ -109,7 +109,7 @@ export class TrafficWeatherService {
 
         return { condition: isRain ? 'rain' : 'clear', raw: data } as const;
       } catch (e) {
-        // Continue to fallback
+        
       }
     }
 

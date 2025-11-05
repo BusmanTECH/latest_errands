@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 export function buildOrderCompletedEmailTemplate(
   brandName: string,
   order: any,

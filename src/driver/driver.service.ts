@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   NotFoundException,
@@ -54,7 +54,7 @@ export class DriverService {
     const region = this.configService.get<string>('LINODE_REGION');
     const bucketName = this.configService.get<string>('LINODE_BUCKET_NAME');
 
-    // Initialize S3 only if all credentials are provided
+    
     if (accessKeyId && secretAccessKey && endpoint && region && bucketName) {
       this.s3 = new AWS.S3({
         endpoint: endpoint,
@@ -62,12 +62,12 @@ export class DriverService {
         accessKeyId: accessKeyId,
         secretAccessKey: secretAccessKey,
         signatureVersion: 'v4',
-        s3ForcePathStyle: true, // Required for Linode Object Storage
-        credentials: new AWS.Credentials(accessKeyId, secretAccessKey), // Explicitly set credentials to prevent metadata service lookup
+        s3ForcePathStyle: true, 
+        credentials: new AWS.Credentials(accessKeyId, secretAccessKey), 
       });
       this.bucketName = bucketName;
     } else {
-      // Log warning but don't throw - allows app to start without file upload functionality
+      
       const missing = [
         !accessKeyId && 'LINODE_ACCESS_KEY_ID',
         !secretAccessKey && 'LINODE_SECRET_ACCESS_KEY',
@@ -98,10 +98,10 @@ export class DriverService {
     });
     if (!user) throw new NotFoundException('Driver not found');
 
-    // Use the stored averageRating from user entity
+    
     const averageRating = Number(user.averageRating) || 0;
 
-    // Calculate average earnings
+    
     const totalEarnings = Number(user.totalEarnings) || 0;
     const deliveriesCount = user.deliveriesCount || 0;
     const avgEarnings =
@@ -156,7 +156,7 @@ export class DriverService {
     if (dto.firstName !== undefined) user.firstName = dto.firstName;
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
 
-    // Check for duplicate phone number before updating
+    
     if (dto.phoneNumber !== undefined && dto.phoneNumber !== user.phoneNumber) {
       const existingUser = await this.userRepo.findOne({
         where: { phoneNumber: dto.phoneNumber },
@@ -184,13 +184,13 @@ export class DriverService {
     });
     if (!user) throw new NotFoundException('Driver not found');
 
-    // Verify the old password
+    
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isPasswordValid) {
       throw new BadRequestException('Incorrect old password');
     }
 
-    // Hash the new password
+    
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedNewPassword;
     await this.userRepo.save(user);
@@ -283,10 +283,10 @@ export class DriverService {
     if (!user) throw new NotFoundException('Driver not found');
 
     if (nin) {
-      // Fetch NIN details from API
+      
       const ninData = await this.getNinDetails(nin);
 
-      // Create or update NIN entity
+      
       let ninEntity = user.nin;
       if (!ninEntity) {
         ninEntity = this.ninRepository.create({
@@ -323,10 +323,10 @@ export class DriverService {
     }
 
     if (driverLicense) {
-      // Fetch driver license details from API
+      
       const licenseData = await this.getDriverLicenseDetails(driverLicense);
 
-      // Create or update DiverLicense entity
+      
       let licenseEntity = user.driverLicense;
       if (!licenseEntity) {
         licenseEntity = this.licenseRepository.create({
@@ -419,7 +419,7 @@ export class DriverService {
     });
     if (!user) throw new NotFoundException('Driver not found');
 
-    // Check if license plate already exists for another user
+    
     const existingVehicle = await this.vehicleRepository.findOne({
       where: { licensePlate: dto.licensePlate },
       relations: ['user'],
@@ -434,11 +434,11 @@ export class DriverService {
     let vehicle = user.vehicle;
 
     if (vehicle) {
-      // Update existing vehicle
+      
       Object.assign(vehicle, dto);
       vehicle = await this.vehicleRepository.save(vehicle);
     } else {
-      // Create new vehicle
+      
       vehicle = this.vehicleRepository.create({
         ...dto,
         user: user,
@@ -489,7 +489,7 @@ export class DriverService {
       vehicleRegistration?: string;
     } = {};
 
-    // Upload Selfie (Profile Image)
+    
     if (files.selfie && files.selfie.length > 0) {
       try {
         const file = files.selfie[0];
@@ -541,7 +541,7 @@ export class DriverService {
       console.log('No selfie file provided in upload request');
     }
 
-    // Upload Driver's License
+    
     if (files.driverLicense && files.driverLicense.length > 0) {
       const file = files.driverLicense[0];
       const fileUrl = await this.uploadFileToLinode(file);
@@ -569,7 +569,7 @@ export class DriverService {
       uploadedFiles.driverLicense = fileUrl;
     }
 
-    // Upload Vehicle License Plate
+    
     if (files.vehicleLicensePlate && files.vehicleLicensePlate.length > 0) {
       const file = files.vehicleLicensePlate[0];
       const fileUrl = await this.uploadFileToLinode(file);
@@ -597,7 +597,7 @@ export class DriverService {
       uploadedFiles.vehicleLicensePlate = fileUrl;
     }
 
-    // Upload Vehicle Registration
+    
     if (files.vehicleRegistration && files.vehicleRegistration.length > 0) {
       const file = files.vehicleRegistration[0];
       const fileUrl = await this.uploadFileToLinode(file);
@@ -641,14 +641,14 @@ export class DriverService {
     });
     if (!user) throw new NotFoundException('Driver not found');
 
-    // If trying to go online, check approval first
+    
     if (!user.isOnline && !user.isApproved) {
       throw new BadRequestException(
         'Cannot go online. Admin approval is required.',
       );
     }
 
-    // Toggle status (can always go offline)
+    
     user.isOnline = !user.isOnline;
     await this.userRepo.save(user);
 
@@ -689,11 +689,11 @@ export class DriverService {
     });
     if (!user) throw new NotFoundException('Driver not found');
 
-    // Update earnings
+    
     const currentEarnings = Number(user.totalEarnings) || 0;
     user.totalEarnings = currentEarnings + earningsAmount;
 
-    // Update delivery count
+    
     user.deliveriesCount = (user.deliveriesCount || 0) + 1;
 
     return this.userRepo.save(user);

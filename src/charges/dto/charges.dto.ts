@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { IsNotEmpty, IsObject } from "class-validator";
 
 export class SetChargesDto {

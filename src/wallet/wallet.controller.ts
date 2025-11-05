@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Controller,
   Get,
@@ -120,7 +120,7 @@ export class WalletController {
       if (userRole !== UserRole.RIDER) {
         throw new ForbiddenException('Wallet is only available for drivers');
       }
-      // Initialize Paystack payment for wallet funding
+      
       const paymentInit = await this.paymentService.initializeWalletPayment(
         userId,
         dto.amount,
@@ -172,17 +172,16 @@ export class WalletController {
           dto.narration,
         );
 
-      // Send email and push notification
+      
       try {
         const user = await this.walletService.getUserById(userId);
         if (user) {
-          // Send email notification
+          
           await this.mailService.sendWithdrawalRequestEmail(
             withdrawalRequest,
             user,
           );
 
-          // Send push notification
           await this.notificationService.sendCustomNotification(
             userId,
             'Withdrawal Request Submitted',
@@ -202,7 +201,7 @@ export class WalletController {
           'Error sending withdrawal request notifications:',
           notificationError,
         );
-        // Don't fail the request creation if notification fails
+        
       }
 
       return res.status(HttpStatus.CREATED).json({
@@ -223,7 +222,7 @@ export class WalletController {
     }
   }
 
-  // ===================================ADMIN WITHDRAWAL ENDPOINTS========================
+  
 
   @Get('/admin/withdrawals')
   @UseGuards(AuthGuard('jwt'), AdminGuard)
@@ -300,17 +299,15 @@ export class WalletController {
         adminId,
       );
 
-      // Send email and push notification
+      
       try {
-        // User is already loaded in request relations
+        
         const user =
           request.user ||
           (await this.walletService.getUserById(request.userId));
         if (user) {
-          // Send email notification
           await this.mailService.sendWithdrawalApprovedEmail(request, user);
 
-          // Send push notification
           await this.notificationService.sendCustomNotification(
             request.userId,
             'Withdrawal Approved',
@@ -329,7 +326,7 @@ export class WalletController {
           'Error sending approval notifications:',
           notificationError,
         );
-        // Don't fail the approval if notification fails
+        
       }
 
       return res.status(HttpStatus.OK).json({
@@ -364,21 +361,21 @@ export class WalletController {
         dto.rejectionReason,
       );
 
-      // Send email and push notification
+      
       try {
-        // User is already loaded in request relations
+        
         const user =
           request.user ||
           (await this.walletService.getUserById(request.userId));
         if (user) {
-          // Send email notification
+          
           await this.mailService.sendWithdrawalRejectedEmail(
             request,
             user,
             dto.rejectionReason,
           );
 
-          // Send push notification
+          
           await this.notificationService.sendCustomNotification(
             request.userId,
             'Withdrawal Rejected',
@@ -398,7 +395,7 @@ export class WalletController {
           'Error sending rejection notifications:',
           notificationError,
         );
-        // Don't fail the rejection if notification fails
+        
       }
 
       return res.status(HttpStatus.OK).json({

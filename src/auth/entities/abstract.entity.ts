@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {PrimaryGeneratedColumn, Column } from 'typeorm';
 
 
@@ -11,10 +11,10 @@ export class AbstractFileEntity<T> {
   name: string;
 
   @Column()
-  url: string;  // Store the URL of the uploaded file
+  url: string;  
 
   @Column()
-  ext: string;  // Store the file extension
+  ext: string;  
 
 
   constructor(entity : Partial<T>){

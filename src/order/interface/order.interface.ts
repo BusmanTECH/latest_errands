@@ -5,8 +5,8 @@ export interface Order {
     packageType: string;
     pickupLocation: any;
     deliveryLocation: any;
-    pickupCoordinates: string; // PostGIS geometry string format: "POINT(lng lat)"
-    deliveryCoordinates: string; // PostGIS geometry string format: "POINT(lng lat)"
+    pickupCoordinates: string; 
+    deliveryCoordinates: string; 
     closeLandmark: string;
     deliveryType: string;
     shippingType: string;

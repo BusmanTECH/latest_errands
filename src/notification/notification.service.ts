@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,40 +23,38 @@ export class NotificationService {
     private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Register or update push token for a user
-   */
+  
   async registerPushToken(
     userId: string,
     token: string,
     deviceType: DeviceType,
   ): Promise<PushToken> {
-    // Check if token already exists for this user
+    
     const existingToken = await this.pushTokenRepo.findOne({
       where: { userId, token },
     });
 
     if (existingToken) {
-      // Update device type if different
+      
       existingToken.deviceType = deviceType;
       existingToken.updatedAt = new Date();
       return await this.pushTokenRepo.save(existingToken);
     }
 
-    // Check if user has this token with different userId (token reuse across users)
+    
     const tokenExists = await this.pushTokenRepo.findOne({
       where: { token },
     });
 
     if (tokenExists && tokenExists.userId !== userId) {
-      // Update existing token to new user
+      
       tokenExists.userId = userId;
       tokenExists.deviceType = deviceType;
       tokenExists.updatedAt = new Date();
       return await this.pushTokenRepo.save(tokenExists);
     }
 
-    // Create new token
+    
     const pushToken = this.pushTokenRepo.create({
       userId,
       token,
@@ -66,9 +64,7 @@ export class NotificationService {
     return await this.pushTokenRepo.save(pushToken);
   }
 
-  /**
-   * Send Expo push notifications
-   */
+  
   private async sendExpoNotifications(
     tokens: string[],
     title: string,
@@ -81,7 +77,7 @@ export class NotificationService {
 
     if (!tokens || tokens.length === 0) return responses;
 
-    // Batch tokens in groups of EXPO_BATCH_LIMIT (100)
+    
     for (let i = 0; i < tokens.length; i += this.EXPO_BATCH_LIMIT) {
       const batch = tokens.slice(i, i + this.EXPO_BATCH_LIMIT);
       const messages = batch.map((token) => ({
@@ -114,7 +110,7 @@ export class NotificationService {
           },
         );
 
-        // Expo returns an array under data.data (each item has status / id / message)
+        
         const results = Array.isArray(data?.data) ? data.data : [];
         results.forEach((res: any, idx: number) => {
           responses.push({
@@ -128,7 +124,7 @@ export class NotificationService {
         });
       } catch (err: any) {
         this.logger.error('Expo push batch error', err?.message || err);
-        // mark each token in batch as failed
+        
         batch.forEach((token) =>
           responses.push({
             token,
@@ -143,9 +139,7 @@ export class NotificationService {
     return responses;
   }
 
-  /**
-   * Send push notification to user's devices
-   */
+  
   async sendPushNotification(
     userId: string,
     title: string,
@@ -153,7 +147,7 @@ export class NotificationService {
     data?: any,
   ): Promise<void> {
     try {
-      // Get all push tokens for this user
+      
       const tokens = await this.pushTokenRepo.find({
         where: { userId },
       });
@@ -163,14 +157,14 @@ export class NotificationService {
         return;
       }
 
-      // Get user details
+      
       const user = await this.userRepo.findOne({ where: { id: userId } });
       if (!user) {
         this.logger.warn(`User not found: ${userId}`);
         return;
       }
 
-      // Extract tokens
+      
       const tokenStrings = tokens.map((t) => t.token).filter(Boolean);
 
       if (tokenStrings.length === 0) {
@@ -178,11 +172,11 @@ export class NotificationService {
         return;
       }
 
-      // Determine notification type and ID from data
+      
       const notificationType = data?.type || 'ORDER_UPDATE';
       const typeId = data?.orderId || data?.typeId || '';
 
-      // Send notifications using Expo API
+      
       const responses = await this.sendExpoNotifications(
         tokenStrings,
         title,
@@ -192,13 +186,13 @@ export class NotificationService {
         user,
       );
 
-      // Log results and handle invalid tokens
+      
       responses.forEach((response) => {
         if (!response.success) {
           this.logger.warn(
             `Failed to send notification to token ${response.token}: ${response.error}`,
           );
-          // Remove invalid tokens (DeviceNotRegistered, InvalidCredentials, etc.)
+          
           if (
             response.error?.includes('DeviceNotRegistered') ||
             response.error?.includes('InvalidCredentials') ||
@@ -210,13 +204,11 @@ export class NotificationService {
       });
     } catch (error) {
       this.logger.error('Error sending push notification:', error);
-      // Don't throw - notification failures shouldn't break the flow
+      
     }
   }
 
-  /**
-   * Create in-app notification
-   */
+  
   async createInAppNotification(
     userId: string,
     type: NotificationType,
@@ -236,9 +228,7 @@ export class NotificationService {
     return await this.notificationRepo.save(notification);
   }
 
-  /**
-   * Get user notifications with pagination
-   */
+  
   async getUserNotifications(
     userId: string,
     page: number = 1,
@@ -274,9 +264,7 @@ export class NotificationService {
     };
   }
 
-  /**
-   * Mark notification as read
-   */
+  
   async markAsRead(
     notificationId: string,
     userId: string,
@@ -295,9 +283,7 @@ export class NotificationService {
     return await this.notificationRepo.save(notification);
   }
 
-  /**
-   * Mark all notifications as read for a user
-   */
+  
   async markAllAsRead(userId: string): Promise<void> {
     await this.notificationRepo.update(
       { userId, isRead: false },
@@ -305,18 +291,14 @@ export class NotificationService {
     );
   }
 
-  /**
-   * Get unread count for user
-   */
+  
   async getUnreadCount(userId: string): Promise<number> {
     return await this.notificationRepo.count({
       where: { userId, isRead: false },
     });
   }
 
-  /**
-   * Send order notification (both push and in-app)
-   */
+  
   async sendOrderNotification(
     userId: string,
     type: NotificationType,
@@ -332,12 +314,12 @@ export class NotificationService {
       ...additionalData,
     };
 
-    // Send push notification (non-blocking)
+    
     this.sendPushNotification(userId, title, message, data).catch((error) => {
       this.logger.error('Error sending push notification:', error);
     });
 
-    // Create in-app notification (non-blocking)
+    
     this.createInAppNotification(userId, type, title, message, data).catch(
       (error) => {
         this.logger.error('Error creating in-app notification:', error);
@@ -345,10 +327,7 @@ export class NotificationService {
     );
   }
 
-  /**
-   * Send custom notification (both push and in-app)
-   * Used by the send notification endpoint
-   */
+  
   async sendCustomNotification(
     userId: string,
     title: string,
@@ -370,13 +349,13 @@ export class NotificationService {
     };
 
     try {
-      // Get user
+      
       const user = await this.userRepo.findOne({ where: { id: userId } });
       if (!user) {
         throw new NotFoundException('User not found');
       }
 
-      // Get push tokens
+      
       const tokens = await this.pushTokenRepo.find({
         where: { userId },
       });
@@ -387,7 +366,7 @@ export class NotificationService {
       if (tokens.length > 0) {
         const tokenStrings = tokens.map((t) => t.token).filter(Boolean);
 
-        // Send push notifications
+        
         const pushResponses = await this.sendExpoNotifications(
           tokenStrings,
           title,
@@ -400,7 +379,7 @@ export class NotificationService {
         results.pushSent = true;
         results.pushResponses = pushResponses;
 
-        // Handle invalid tokens
+        
         pushResponses.forEach((response) => {
           if (!response.success) {
             if (
@@ -414,8 +393,8 @@ export class NotificationService {
         });
       }
 
-      // Create in-app notification
-      // Validate and convert the type string to a valid NotificationType enum value
+      
+      
       let notificationTypeEnum: NotificationType;
       if (
         type &&
@@ -423,7 +402,7 @@ export class NotificationService {
       ) {
         notificationTypeEnum = type as NotificationType;
       } else {
-        // Use CUSTOM for any non-standard types
+        
         notificationTypeEnum = NotificationType.CUSTOM;
       }
 
@@ -449,9 +428,7 @@ export class NotificationService {
     }
   }
 
-  /**
-   * Get notification title and message based on order event type
-   */
+  
   private getOrderNotificationContent(
     type: NotificationType,
     order: any,

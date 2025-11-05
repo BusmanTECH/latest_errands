@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/charges/charges.controller.ts
+
+
 
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ChargesService } from './charges.service';
@@ -9,7 +9,7 @@ import { SetChargesDto } from './dto/charges.dto';
 export class ChargesController {
   constructor(private readonly chargesService: ChargesService) {}
 
-// src/charges/charges.controller.ts
+
 
 @Post('set')
 async setCharges(@Body() body: SetChargesDto) {

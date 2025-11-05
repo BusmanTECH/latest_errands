@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 export function buildOtpEmailTemplate(
   brandName: string,
   subject: string,

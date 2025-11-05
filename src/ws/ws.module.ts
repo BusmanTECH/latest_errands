@@ -1,5 +1,5 @@
-/* eslint-disable prettier/prettier */
-// src/ws/ws.module.ts
+
+
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DeliveryGateway } from './delivery.gateway';

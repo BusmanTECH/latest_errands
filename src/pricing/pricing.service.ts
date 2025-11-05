@@ -2,14 +2,14 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PricingSettings } from './entities/pricing-settings.entity';
-// import { TrafficWeatherService } from '../order/trafficWeather.service';
+
 
 @Injectable()
 export class PricingService {
   constructor(
     @InjectRepository(PricingSettings)
     private readonly pricingSettingsRepo: Repository<PricingSettings>,
-    // private readonly trafficWeather: TrafficWeatherService,
+    
   ) {}
 
   async getSettingsList(): Promise<PricingSettings[]> {
@@ -24,7 +24,7 @@ export class PricingService {
       take: 1,
     });
     
-    // If no settings exist, create default settings
+    
     if (!settings) {
       const defaultSettings = this.pricingSettingsRepo.create({
         name: 'general',
@@ -90,15 +90,15 @@ export class PricingService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
 
-    // TODO: Re-implement traffic weather service integration when available
-    // const pickup = `${payload.pickupLat},${payload.pickupLng}`;
-    // const delivery = `${payload.deliveryLat},${payload.deliveryLng}`;
-    // const distanceMatrix = await this.trafficWeather.getTrafficCondition(
-    //   pickup,
-    //   delivery,
-    // );
+    
+    
+    
+    
+    
+    
+    
 
-    // Reuse order service formula:
+    
     const costPerKm = Number(settings.costPerKm);
     const minCost = Number(settings.minCost);
     const maxCost = Number(settings.maxCost);
@@ -107,7 +107,7 @@ export class PricingService {
         payload.deliveryType === 'express' ? 'express' : 'normal'
       ] || costPerKm;
 
-    // Return settings for now - traffic service can be integrated later
+    
     return { settings, costPerKm, minCost, maxCost, perKm };
   }
 }

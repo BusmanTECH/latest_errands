@@ -1,24 +1,24 @@
-/* eslint-disable prettier/prettier */
+
 import { Injectable } from '@nestjs/common';
 import * as Twilio from 'twilio';
-import * as phoneUtil from 'libphonenumber-js'; // Install this: npm install libphonenumber-js
+import * as phoneUtil from 'libphonenumber-js'; 
 
 @Injectable()
 export class SmsService {
   private readonly client;
-  private readonly serviceSid = process.env.TWILIO_SID; // Twilio Verify service SID
+  private readonly serviceSid = process.env.TWILIO_SID; 
 
   constructor() {
-    this.client = Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH); // Replace with your Twilio SID and token
+    this.client = Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH); 
   }
 
   private formatPhoneNumber(phoneNumber: string): string {
     try {
-      const parsedNumber = phoneUtil.parsePhoneNumber(phoneNumber, 'NG'); // 'NG' for Nigeria
+      const parsedNumber = phoneUtil.parsePhoneNumber(phoneNumber, 'NG'); 
       if (!parsedNumber.isValid()) {
         throw new Error('Invalid phone number');
       }
-      return parsedNumber.number; // E.164 formatted number
+      return parsedNumber.number; 
     } catch (error) {
       throw new Error(`Error formatting phone number: ${error.message}`);
     }

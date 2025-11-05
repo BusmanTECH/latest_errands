@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
@@ -14,26 +14,26 @@ async function bootstrap() {
   dotenv.config();
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
-  // Middleware to parse raw body for Stripe webhooks
-  // app.use('/orders/webhook', express.raw({ type: 'application/json' }));
-  // This captures raw body and attaches it to req.rawBody
+  
+  
+  
   app.use(
     '/orders/webhook',
     express.raw({ type: 'application/json' }),
     (req, res, next) => {
-      // Store raw body so we can access it in the controller
+      
       (req as any).rawBody = req.body;
       next();
     },
   );
 
-  // Raw body middleware for Paystack webhooks (required for signature verification)
-  // This must come BEFORE express.json() to capture the raw body
+  
+  
 
-  // Raw body middleware for legacy endpoint
+  
   app.use('/payment/webhook', express.raw({ type: 'application/json' }));
 
-  // Default JSON body parser for other routes
+  
   app.use(express.json());
 
   app.use(cookieParser());
@@ -66,7 +66,7 @@ async function bootstrap() {
       'Access-Control-Allow-Methods',
       'Access-Control-Allow-Credentials',
     ],
-    // maxAge: 86400,
+    
   });
 
   app.useGlobalPipes(
@@ -77,7 +77,7 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger setup
+  
   const config = new DocumentBuilder()
     .setTitle('Errands API')
     .setDescription('API documentation for Errands service')
@@ -96,12 +96,12 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // Ensure default admin exists
+  
   try {
     const authService = app.get(AuthService);
     await authService.ensureDefaultAdminAccount();
   } catch (e) {
-    // Best-effort; don't block startup
+    
     new Logger('Bootstrap').error(
       'Failed to ensure default admin',
       e?.message || e,

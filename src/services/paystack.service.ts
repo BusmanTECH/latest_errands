@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import {
   Injectable,
   BadRequestException,
@@ -69,7 +69,7 @@ export class PaystackService {
     metadata?: any;
   }): Promise<any> {
     try {
-      // Paystack expects amount in kobo (multiply by 100)
+      
       const amountInKobo = Math.round(payload.amount * 100);
 
       const response = await axios.post(
@@ -113,7 +113,7 @@ export class PaystackService {
     metadata?: any;
   }): Promise<any> {
     try {
-      // Paystack expects amount in kobo
+      
       const amountInKobo = Math.round(payload.amount * 100);
 
       const response = await axios.post(
@@ -145,7 +145,7 @@ export class PaystackService {
 
   async initiateRefund(reference: string, amount: number): Promise<any> {
     try {
-      // Paystack expects amount in kobo
+      
       const amountInKobo = Math.round(amount * 100);
 
       const response = await axios.post(

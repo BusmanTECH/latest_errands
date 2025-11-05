@@ -6,7 +6,7 @@ export class costDto {
     @IsObject() deliveryCoords: any;
     @IsString() deliveryType: string;
     @IsString() @IsOptional() packageCategory?: string;
-    // @IsString() vehicle: string;
+    
 }
 
 export class DeliveryCoord {
@@ -18,7 +18,7 @@ export class multipleCostDto {
     @IsArray() @ValidateNested({ each: true }) @Type(() => DeliveryCoord) @ArrayMinSize(1) deliveryCoords: DeliveryCoord[];
     @IsString() deliveryType: string;
     @IsString() @IsOptional() packageCategory?: string;
-    // @IsString() vehicle: string;
+    
 }
 
 

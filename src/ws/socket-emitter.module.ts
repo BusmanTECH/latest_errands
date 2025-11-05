@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+
 import { Module } from '@nestjs/common';
 import { SocketEmitter } from './socket-emitter.service';
 
