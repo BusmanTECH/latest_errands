@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   NotFoundException,
@@ -10,9 +9,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { User, UserRole } from '../auth/entities/user.entity';
-import { WithdrawalRequest, WithdrawalStatus } from './entities/withdrawal-request.entity';
+import {
+  WithdrawalRequest,
+  WithdrawalStatus,
+} from './entities/withdrawal-request.entity';
 import { TransactionService } from '../transaction/transaction.service';
-import { TransactionType, TransactionStatus } from '../transaction/entities/transaction.entity';
+import {
+  TransactionType,
+  TransactionStatus,
+} from '../transaction/entities/transaction.entity';
 
 @Injectable()
 export class WalletService {
@@ -33,7 +38,6 @@ export class WalletService {
       throw new ForbiddenException('Wallet is only available for drivers');
     }
 
-    
     const existingWallet = await this.walletRepo.findOne({
       where: { user: { id: userId } },
       relations: ['user'],
@@ -69,7 +73,6 @@ export class WalletService {
     });
 
     if (!wallet) {
-      
       wallet = await this.createWallet(userId);
     }
 
@@ -90,7 +93,6 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    
     const wallet = await this.getWallet(userId);
     wallet.balance = Number(wallet.balance) + Number(amount);
     return this.walletRepo.save(wallet);
@@ -107,13 +109,11 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    
     const wallet = await this.getWallet(userId);
     const currentBalance = Number(wallet.balance);
     const amountNum = Number(amount);
 
     if (allowNegative && negativeLimit !== undefined) {
-      
       const newBalance = currentBalance - amountNum;
       if (newBalance < negativeLimit) {
         throw new BadRequestException(
@@ -121,7 +121,6 @@ export class WalletService {
         );
       }
     } else {
-      
       if (currentBalance < amountNum) {
         throw new BadRequestException('Insufficient wallet balance');
       }
@@ -138,7 +137,6 @@ export class WalletService {
     return this.creditWallet(userId, amount, 'Driver earnings from order');
   }
 
-  
   async createWithdrawalRequest(
     userId: string,
     amount: number,
@@ -148,7 +146,6 @@ export class WalletService {
       throw new BadRequestException('Amount must be greater than 0');
     }
 
-    
     const wallet = await this.getWallet(userId);
     const currentBalance = Number(wallet.balance);
 
@@ -156,7 +153,6 @@ export class WalletService {
       throw new BadRequestException('Insufficient wallet balance');
     }
 
-    
     const pendingRequest = await this.withdrawalRequestRepo.findOne({
       where: {
         userId,
@@ -170,7 +166,6 @@ export class WalletService {
       );
     }
 
-    
     const withdrawalRequest = this.withdrawalRequestRepo.create({
       userId,
       amount,
@@ -179,14 +174,14 @@ export class WalletService {
       status: WithdrawalStatus.PENDING,
     });
 
-    const savedRequest = await this.withdrawalRequestRepo.save(withdrawalRequest);
+    const savedRequest =
+      await this.withdrawalRequestRepo.save(withdrawalRequest);
 
-    
     try {
-      const transactionNarration = narration 
-        ? `${narration} (Withdrawal Request: ${savedRequest.id})`
-        : `Wallet withdrawal request (Withdrawal Request: ${savedRequest.id})`;
-      
+      const transactionNarration = narration
+        ? ` (Withdrawal Request: ${savedRequest.amount})`
+        : `Wallet withdrawal request (Withdrawal Request: ${savedRequest.amount})`;
+
       const transactionReference = `TXN-WD-${savedRequest.id}-${Date.now()}`;
 
       await this.transactionService.createTransaction({
@@ -198,33 +193,22 @@ export class WalletService {
         status: TransactionStatus.INITIATED,
         reference: transactionReference,
       });
-
-      console.log('[WALLET_SERVICE] Transaction created for withdrawal request:', {
-        withdrawalRequestId: savedRequest.id,
-        driverId: userId,
-        amount: amount,
-        reference: transactionReference,
-      });
     } catch (transactionError) {
       console.error(
         '[WALLET_SERVICE] Error creating transaction for withdrawal request:',
         transactionError,
       );
-      
-      
     }
 
     return savedRequest;
   }
 
-  async getAllWithdrawalRequests(
-    filters?: {
-      status?: WithdrawalStatus;
-      userId?: string;
-      page?: number;
-      pageSize?: number;
-    },
-  ): Promise<{
+  async getAllWithdrawalRequests(filters?: {
+    status?: WithdrawalStatus;
+    userId?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
     requests: WithdrawalRequest[];
     total: number;
     page: number;
@@ -243,14 +227,13 @@ export class WalletService {
       where.userId = filters.userId;
     }
 
-    const [requests, total] =
-      await this.withdrawalRequestRepo.findAndCount({
-        where,
-        relations: ['user', 'user.profileImage', 'processedBy'],
-        order: { createdAt: 'DESC' },
-        skip,
-        take: pageSize,
-      });
+    const [requests, total] = await this.withdrawalRequestRepo.findAndCount({
+      where,
+      relations: ['user', 'user.profileImage', 'processedBy'],
+      order: { createdAt: 'DESC' },
+      skip,
+      take: pageSize,
+    });
 
     return {
       requests,
@@ -261,9 +244,7 @@ export class WalletService {
     };
   }
 
-  async getWithdrawalRequestById(
-    id: string,
-  ): Promise<WithdrawalRequest> {
+  async getWithdrawalRequestById(id: string): Promise<WithdrawalRequest> {
     const request = await this.withdrawalRequestRepo.findOne({
       where: { id },
       relations: ['user', 'user.profileImage', 'processedBy'],
@@ -295,7 +276,6 @@ export class WalletService {
       );
     }
 
-    
     const wallet = await this.getWallet(request.userId);
     const currentBalance = Number(wallet.balance);
 
@@ -305,46 +285,40 @@ export class WalletService {
       );
     }
 
-    
     await this.debitWallet(
       request.userId,
       request.amount,
       request.narration || 'Wallet withdrawal',
     );
 
-    
     request.status = WithdrawalStatus.APPROVED;
     request.processedByUserId = adminUserId;
     request.processedAt = new Date();
 
     const savedRequest = await this.withdrawalRequestRepo.save(request);
 
-    
     try {
-      
-      
       const transactions = await this.transactionService.getTransactions(
         request.userId,
         {
           type: TransactionType.DEBIT,
           status: TransactionStatus.INITIATED,
           page: 1,
-          pageSize: 100, 
+          pageSize: 100,
         },
       );
 
-      
-      
-      const withdrawalTransaction = transactions.transactions.find((txn) =>
-        (txn.narration?.includes(`Withdrawal Request: ${request.id}`)) ||
-        (txn.reference?.includes(`WD-${request.id}`)),
+      const withdrawalTransaction = transactions.transactions.find(
+        (txn) =>
+          txn.narration?.includes(`Withdrawal Request: ${request.id}`) ||
+          txn.reference?.includes(`WD-${request.id}`),
       );
 
       if (withdrawalTransaction) {
         await this.transactionService.updateTransactionStatus(
           withdrawalTransaction.id,
           TransactionStatus.SUCCESSFUL,
-          true, 
+          true,
         );
 
         console.log('[WALLET_SERVICE] Transaction updated to SUCCESSFUL:', {
@@ -364,8 +338,6 @@ export class WalletService {
         '[WALLET_SERVICE] Error updating transaction status for withdrawal approval:',
         transactionError,
       );
-      
-      
     }
 
     return savedRequest;
@@ -391,7 +363,6 @@ export class WalletService {
       );
     }
 
-    
     request.status = WithdrawalStatus.REJECTED;
     request.rejectionReason = rejectionReason;
     request.processedByUserId = adminUserId;
@@ -399,32 +370,28 @@ export class WalletService {
 
     const savedRequest = await this.withdrawalRequestRepo.save(request);
 
-    
     try {
-      
-      
       const transactions = await this.transactionService.getTransactions(
         request.userId,
         {
           type: TransactionType.DEBIT,
           status: TransactionStatus.INITIATED,
           page: 1,
-          pageSize: 100, 
+          pageSize: 100,
         },
       );
 
-      
-      
-      const withdrawalTransaction = transactions.transactions.find((txn) =>
-        (txn.narration?.includes(`Withdrawal Request: ${request.id}`)) ||
-        (txn.reference?.includes(`WD-${request.id}`)),
+      const withdrawalTransaction = transactions.transactions.find(
+        (txn) =>
+          txn.narration?.includes(`Withdrawal Request: ${request.id}`) ||
+          txn.reference?.includes(`WD-${request.id}`),
       );
 
       if (withdrawalTransaction) {
         await this.transactionService.updateTransactionStatus(
           withdrawalTransaction.id,
           TransactionStatus.CANCELLED,
-          false, 
+          false,
         );
 
         console.log('[WALLET_SERVICE] Transaction updated to CANCELLED:', {
@@ -444,8 +411,6 @@ export class WalletService {
         '[WALLET_SERVICE] Error updating transaction status for withdrawal rejection:',
         transactionError,
       );
-      
-      
     }
 
     return savedRequest;
@@ -457,4 +422,3 @@ export class WalletService {
     });
   }
 }
-

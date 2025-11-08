@@ -17,6 +17,7 @@ import { MailModule } from '../mail/mail.module';
 import { NotificationModule } from '../notification/notification.module';
 import { ReceiptModule } from '../receipt/receipt.module';
 import { User } from '../auth/entities/user.entity';
+import { OrderReminderService } from './order-reminder.service';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { User } from '../auth/entities/user.entity';
     ReceiptModule,
   ],
   controllers: [OrderController],
-  providers: [OrderService, DriverService, TrafficWeatherService],
+  providers: [OrderService, DriverService, TrafficWeatherService, OrderReminderService],
   exports: [OrderService],
 })
 export class OrderModule {}
