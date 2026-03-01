@@ -200,6 +200,14 @@ export class User {
   @JoinColumn()
   wallet?: Wallet;
 
+  @OneToOne(() => require('../../wallet/entities/bank-information.entity').BankInformation, {
+    cascade: true,
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn()
+  bankInformation?: any;
+
   toJSON() {
     return instanceToPlain(this, { excludePrefixes: ['_'] });
   }

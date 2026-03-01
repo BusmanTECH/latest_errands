@@ -1,8 +1,9 @@
-
 import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   HttpStatus,
   UseGuards,
@@ -26,6 +27,10 @@ import {
   RejectWithdrawalDto,
   GetWithdrawalsQueryDto,
 } from './dto/withdrawal-request.dto';
+import {
+  CreateBankInformationDto,
+  UpdateBankInformationDto,
+} from './dto/bank-information.dto';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { UserRole } from '../auth/entities/user.entity';
 import { AdminGuard } from '../guards/admin.guard';
@@ -62,6 +67,8 @@ export class WalletController {
           balance: Number(wallet.balance),
           currency: wallet.currency,
           createdAt: wallet.createdAt,
+          ctrlQ: wallet.ctrlQ,
+          limitAmount: wallet.limitAmount,
           updatedAt: wallet.updatedAt,
         },
       });
@@ -120,7 +127,7 @@ export class WalletController {
       if (userRole !== UserRole.RIDER) {
         throw new ForbiddenException('Wallet is only available for drivers');
       }
-      
+
       const paymentInit = await this.paymentService.initializeWalletPayment(
         userId,
         dto.amount,
@@ -172,11 +179,9 @@ export class WalletController {
           dto.narration,
         );
 
-      
       try {
         const user = await this.walletService.getUserById(userId);
         if (user) {
-          
           await this.mailService.sendWithdrawalRequestEmail(
             withdrawalRequest,
             user,
@@ -201,7 +206,6 @@ export class WalletController {
           'Error sending withdrawal request notifications:',
           notificationError,
         );
-        
       }
 
       return res.status(HttpStatus.CREATED).json({
@@ -221,8 +225,6 @@ export class WalletController {
       });
     }
   }
-
-  
 
   @Get('/admin/withdrawals')
   @UseGuards(AuthGuard('jwt'), AdminGuard)
@@ -299,9 +301,7 @@ export class WalletController {
         adminId,
       );
 
-      
       try {
-        
         const user =
           request.user ||
           (await this.walletService.getUserById(request.userId));
@@ -326,7 +326,6 @@ export class WalletController {
           'Error sending approval notifications:',
           notificationError,
         );
-        
       }
 
       return res.status(HttpStatus.OK).json({
@@ -361,21 +360,17 @@ export class WalletController {
         dto.rejectionReason,
       );
 
-      
       try {
-        
         const user =
           request.user ||
           (await this.walletService.getUserById(request.userId));
         if (user) {
-          
           await this.mailService.sendWithdrawalRejectedEmail(
             request,
             user,
             dto.rejectionReason,
           );
 
-          
           await this.notificationService.sendCustomNotification(
             request.userId,
             'Withdrawal Rejected',
@@ -395,7 +390,6 @@ export class WalletController {
           'Error sending rejection notifications:',
           notificationError,
         );
-        
       }
 
       return res.status(HttpStatus.OK).json({
@@ -407,6 +401,164 @@ export class WalletController {
       return res.status(HttpStatus.BAD_REQUEST).json({
         status: HttpStatus.BAD_REQUEST,
         message: error?.message || 'Failed to reject withdrawal request',
+      });
+    }
+  }
+
+  @Post('/bank-information')
+  @ApiOperation({
+    summary: 'Add or update bank information (drivers only)',
+    description:
+      'Creates or updates bank information for the authenticated driver. Required before creating withdrawal requests.',
+  })
+  async createOrUpdateBankInformation(
+    @Users('sub') userId: string,
+    @Users('role') userRole: UserRole,
+    @Body() dto: CreateBankInformationDto,
+    @Res() res: Response,
+  ) {
+    try {
+      if (userRole !== UserRole.RIDER) {
+        throw new ForbiddenException(
+          'Bank information is only available for drivers',
+        );
+      }
+
+      const bankInfo = await this.walletService.createOrUpdateBankInformation(
+        userId,
+        dto,
+      );
+
+      return res.status(HttpStatus.OK).json({
+        status: HttpStatus.OK,
+        message: 'Bank information saved successfully',
+        data: bankInfo,
+      });
+    } catch (error) {
+      const status =
+        error instanceof ForbiddenException
+          ? HttpStatus.FORBIDDEN
+          : HttpStatus.BAD_REQUEST;
+      return res.status(status).json({
+        status,
+        message: error?.message || 'Failed to save bank information',
+      });
+    }
+  }
+
+  @Get('/bank-information')
+  @ApiOperation({
+    summary: 'Get bank information (drivers only)',
+    description: "Retrieves the authenticated driver's bank information",
+  })
+  async getBankInformation(
+    @Users('sub') userId: string,
+    @Users('role') userRole: UserRole,
+    @Res() res: Response,
+  ) {
+    try {
+      if (userRole !== UserRole.RIDER) {
+        throw new ForbiddenException(
+          'Bank information is only available for drivers',
+        );
+      }
+
+      const bankInfo = await this.walletService.getBankInformation(userId);
+
+      return res.status(HttpStatus.OK).json({
+        status: HttpStatus.OK,
+        message: 'Bank information fetched successfully',
+        data: bankInfo,
+      });
+    } catch (error) {
+      const status =
+        error instanceof NotFoundException
+          ? HttpStatus.NOT_FOUND
+          : error instanceof ForbiddenException
+            ? HttpStatus.FORBIDDEN
+            : HttpStatus.BAD_REQUEST;
+      return res.status(status).json({
+        status,
+        message: error?.message || 'Failed to fetch bank information',
+      });
+    }
+  }
+
+  @Put('/bank-information')
+  @ApiOperation({
+    summary: 'Update bank information (drivers only)',
+    description: "Updates the authenticated driver's bank information",
+  })
+  async updateBankInformation(
+    @Users('sub') userId: string,
+    @Users('role') userRole: UserRole,
+    @Body() dto: UpdateBankInformationDto,
+    @Res() res: Response,
+  ) {
+    try {
+      if (userRole !== UserRole.RIDER) {
+        throw new ForbiddenException(
+          'Bank information is only available for drivers',
+        );
+      }
+
+      const bankInfo = await this.walletService.updateBankInformation(
+        userId,
+        dto,
+      );
+
+      return res.status(HttpStatus.OK).json({
+        status: HttpStatus.OK,
+        message: 'Bank information updated successfully',
+        data: bankInfo,
+      });
+    } catch (error) {
+      const status =
+        error instanceof NotFoundException
+          ? HttpStatus.NOT_FOUND
+          : error instanceof ForbiddenException
+            ? HttpStatus.FORBIDDEN
+            : HttpStatus.BAD_REQUEST;
+      return res.status(status).json({
+        status,
+        message: error?.message || 'Failed to update bank information',
+      });
+    }
+  }
+
+  @Delete('/bank-information')
+  @ApiOperation({
+    summary: 'Delete bank information (drivers only)',
+    description: "Deletes the authenticated driver's bank information",
+  })
+  async deleteBankInformation(
+    @Users('sub') userId: string,
+    @Users('role') userRole: UserRole,
+    @Res() res: Response,
+  ) {
+    try {
+      if (userRole !== UserRole.RIDER) {
+        throw new ForbiddenException(
+          'Bank information is only available for drivers',
+        );
+      }
+
+      await this.walletService.deleteBankInformation(userId);
+
+      return res.status(HttpStatus.OK).json({
+        status: HttpStatus.OK,
+        message: 'Bank information deleted successfully',
+      });
+    } catch (error) {
+      const status =
+        error instanceof NotFoundException
+          ? HttpStatus.NOT_FOUND
+          : error instanceof ForbiddenException
+            ? HttpStatus.FORBIDDEN
+            : HttpStatus.BAD_REQUEST;
+      return res.status(status).json({
+        status,
+        message: error?.message || 'Failed to delete bank information',
       });
     }
   }

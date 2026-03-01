@@ -1074,11 +1074,7 @@ export class OrderService {
         paymentMethod: order?.paymentMethod,
       });
 
-      const orderSettings = await this.getOrCreateOrderSettings();
-      const orderPercentage = orderSettings.orderPercentage || 10;
-
       const orderAmountNum = Number(order.amount);
-      const percentageAmount = (orderAmountNum * orderPercentage) / 100;
 
       let driverId: string | undefined;
       if (order.driverId) {
@@ -1101,8 +1097,6 @@ export class OrderService {
         return;
       }
 
-      console.log('[ORDER_COMPLETION] Driver ID extracted:', driverId);
-
       const driver = await this.userRepo.findOne({
         where: { id: driverId, role: 'rider' as any },
       });
@@ -1115,73 +1109,37 @@ export class OrderService {
       const finalDriverId = driver.id.toString();
       const orderId = order.id.toString();
 
-      console.log('[ORDER_COMPLETION] Processing transactions', {
-        finalDriverId,
-        orderId,
-        paymentMethod: order.paymentMethod,
-        amount: orderAmountNum,
-        commission: percentageAmount,
-      });
-
-      const commissionReference = `TXN-COMM-${generateOTP(12, false)}-${Date.now()}`;
-
+      // Skip wallet crediting for cash orders - riders collect cash directly
       if (order.paymentMethod === 'cash') {
-        try {
-          await this.transactionService.createTransaction({
-            driverId: finalDriverId,
-            orderId: orderId,
-            type: TransactionType.DEBIT,
-            amount: percentageAmount,
-            currency: 'NGN',
-            narration: `Platform commission deduction for order (cash payment)`,
-            status: TransactionStatus.SUCCESSFUL,
-            reference: commissionReference,
-          });
-          console.log(
-            '[ORDER_COMPLETION] Commission transaction created for cash payment',
-          );
-        } catch (error) {
-          console.error(
-            '[ORDER_COMPLETION] Error creating commission transaction for cash:',
-            error,
-          );
-        }
-
+        console.log(
+          '[ORDER_COMPLETION] Cash order - skipping wallet credit (rider collects cash)',
+        );
         return;
-      } else {
-        // Commission was already deducted when rider accepted the order
-        // So credit the rider with the full order amount
-        try {
-          await this.walletService.creditWallet(
-            finalDriverId,
-            orderAmountNum,
-            'Order payment earnings',
-          );
-          console.log(
-            '[ORDER_COMPLETION] Rider wallet credited with full amount:',
-            orderAmountNum,
-          );
+      }
 
-          const fundingReference = `TXN-EARN-${generateOTP(12, false)}-${Date.now()}`;
-
-          await this.transactionService.createTransaction({
-            driverId: finalDriverId,
-            orderId: orderId,
-            type: TransactionType.CREDIT,
-            amount: orderAmountNum,
-            currency: 'NGN',
-            narration: `Order payment earnings for order ${orderId}`,
-            status: TransactionStatus.SUCCESSFUL,
-            reference: fundingReference,
-          });
-          console.log('[ORDER_COMPLETION] Rider funding transaction created');
-        } catch (error) {
-          console.error(
-            '[ORDER_COMPLETION] Error processing rider funding:',
-            error,
-          );
-          throw error;
-        }
+      try {
+        await this.walletService.creditWallet(
+          finalDriverId,
+          orderAmountNum,
+          'Order payment earnings',
+        );
+        const fundingReference = `TXN-EARN-${generateOTP(12, false)}-${Date.now()}`;
+        await this.transactionService.createTransaction({
+          driverId: finalDriverId,
+          orderId: orderId,
+          type: TransactionType.CREDIT,
+          amount: orderAmountNum,
+          currency: 'NGN',
+          narration: `Order payment earnings for order ${orderId}`,
+          status: TransactionStatus.SUCCESSFUL,
+          reference: fundingReference,
+        });
+      } catch (error) {
+        console.error(
+          '[ORDER_COMPLETION] Error processing rider funding:',
+          error,
+        );
+        throw error;
       }
     } catch (error) {
       console.error(
@@ -1837,23 +1795,26 @@ export class OrderService {
       const walletBalance = await this.walletService.getWalletBalance(
         driver.id.toString(),
       );
-      if (walletBalance < limitAmount) {
-        throw new HttpException(
-          'Your wallet balance is below the limit. Please fund your wallet to accept orders.',
-          HttpStatus.FORBIDDEN,
-        );
-      }
+      const orderSettings = await this.getOrCreateOrderSettings();
+      const orderPercentage = orderSettings.orderPercentage || 10;
+      const orderAmountNum = Number(order.amount);
+      const percentageAmount = (orderAmountNum * orderPercentage) / 100;
 
-      // Check if rider has enough balance to cover commission (for non-cash orders)
-      if (order.paymentMethod !== 'cash') {
-        const orderSettings = await this.getOrCreateOrderSettings();
-        const orderPercentage = orderSettings.orderPercentage || 10;
-        const orderAmountNum = Number(order.amount);
-        const percentageAmount = (orderAmountNum * orderPercentage) / 100;
-
-        if (walletBalance < percentageAmount) {
+      if (order.paymentMethod === 'cash') {
+        // For cash orders, allow negative balance up to the limit amount
+        const balanceAfterCommission = walletBalance - percentageAmount;
+        if (balanceAfterCommission < limitAmount) {
           throw new HttpException(
-            `Insufficient wallet balance to cover commission (${percentageAmount} NGN). Please fund your wallet to accept this order.`,
+            `Insufficient wallet balance. After commission deduction (${percentageAmount} NGN), your balance would be ${balanceAfterCommission} NGN, which is below the minimum limit of ${limitAmount} NGN. Please fund your wallet to accept this order.`,
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      } else {
+        // For non-cash orders, check if balance after commission deduction would be below the negative limit
+        const balanceAfterCommission = walletBalance - percentageAmount;
+        if (balanceAfterCommission < limitAmount) {
+          throw new HttpException(
+            `Insufficient wallet balance. After commission deduction (${percentageAmount} NGN), your balance would be ${balanceAfterCommission} NGN, which is below the minimum limit of ${limitAmount} NGN. Please fund your wallet to accept this order.`,
             HttpStatus.FORBIDDEN,
           );
         }
@@ -1874,45 +1835,62 @@ export class OrderService {
     const newOrder = await this.updateOrder(orderId, payload);
 
     // Deduct commission when rider accepts the order
-    if (newOrder.paymentMethod !== 'cash') {
-      try {
-        const orderSettings = await this.getOrCreateOrderSettings();
-        const orderPercentage = orderSettings.orderPercentage || 10;
-        const orderAmountNum = Number(newOrder.amount);
-        const percentageAmount = (orderAmountNum * orderPercentage) / 100;
+    try {
+      const orderSettings = await this.getOrCreateOrderSettings();
+      const orderPercentage = orderSettings.orderPercentage || 10;
+      const orderAmountNum = Number(newOrder.amount);
+      const percentageAmount = (orderAmountNum * orderPercentage) / 100;
 
-        const commissionReference = `TXN-COMM-${generateOTP(12, false)}-${Date.now()}`;
+      const commissionReference = `TXN-COMM-${generateOTP(12, false)}-${Date.now()}`;
+      const limitAmount = await this.paymentService.getBalanceLimit();
 
+      if (newOrder.paymentMethod === 'cash') {
+        // For cash orders, allow negative balance up to the limit amount
         await this.walletService.debitWallet(
           driver.id.toString(),
           percentageAmount,
           'Platform commission for accepting order',
+          true, // allowNegative
+          limitAmount, // negativeLimit
         );
         console.log(
-          '[ORDER_ACCEPTANCE] Commission deducted from rider wallet:',
+          '[ORDER_ACCEPTANCE] Commission deducted from rider wallet (cash order, negative allowed):',
           percentageAmount,
         );
-
-        await this.transactionService.createTransaction({
-          driverId: driver.id.toString(),
-          orderId: orderId,
-          type: TransactionType.DEBIT,
-          amount: percentageAmount,
-          currency: 'NGN',
-          narration: `Platform commission for accepting order ${orderId}`,
-          status: TransactionStatus.SUCCESSFUL,
-          reference: commissionReference,
-        });
-        console.log('[ORDER_ACCEPTANCE] Commission transaction created');
-      } catch (error) {
-        console.error('[ORDER_ACCEPTANCE] Error deducting commission:', error);
-        // If commission deduction fails after order is accepted, we should rollback
-        // For now, log the error - in production, consider implementing a rollback mechanism
-        throw new HttpException(
-          'Failed to process commission. Order acceptance may need to be reversed.',
-          HttpStatus.INTERNAL_SERVER_ERROR,
+      } else {
+        // For non-cash orders, also allow negative balance up to the limit amount
+        await this.walletService.debitWallet(
+          driver.id.toString(),
+          percentageAmount,
+          'Platform commission for accepting order',
+          true, // allowNegative
+          limitAmount, // negativeLimit
+        );
+        console.log(
+          '[ORDER_ACCEPTANCE] Commission deducted from rider wallet (negative allowed):',
+          percentageAmount,
         );
       }
+
+      await this.transactionService.createTransaction({
+        driverId: driver.id.toString(),
+        orderId: orderId,
+        type: TransactionType.DEBIT,
+        amount: percentageAmount,
+        currency: 'NGN',
+        narration: `Platform commission for accepting order ${orderId}`,
+        status: TransactionStatus.SUCCESSFUL,
+        reference: commissionReference,
+      });
+      console.log('[ORDER_ACCEPTANCE] Commission transaction created');
+    } catch (error) {
+      console.error('[ORDER_ACCEPTANCE] Error deducting commission:', error);
+      // If commission deduction fails after order is accepted, we should rollback
+      // For now, log the error - in production, consider implementing a rollback mechanism
+      throw new HttpException(
+        'Failed to process commission. Order acceptance may need to be reversed.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     try {
@@ -2083,16 +2061,28 @@ export class OrderService {
           const driverUser =
             await this.driverService.getDriverProfile(driverId);
           if (driverUser && driverUser.id) {
-            // If order was completed, reverse the full earnings
             if (order.status === 'completed') {
+              // If order was completed, reverse the full earnings
               const limitAmount = await this.paymentService.getBalanceLimit();
-              await this.walletService.debitWallet(
-                driverUser.id.toString(),
-                Number(order.amount),
-                'Order cancellation - reversing earnings',
-                true,
-                limitAmount,
-              );
+              // For cash orders, use negative limit; for others, normal debit
+              if (order.paymentMethod === 'cash') {
+                await this.walletService.debitWallet(
+                  driverUser.id.toString(),
+                  Number(order.amount),
+                  'Order cancellation - reversing earnings',
+                  true, // allowNegative
+                  limitAmount, // negativeLimit
+                );
+              } else {
+                // For non-cash orders, also allow negative balance when reversing
+                await this.walletService.debitWallet(
+                  driverUser.id.toString(),
+                  Number(order.amount),
+                  'Order cancellation - reversing earnings',
+                  true, // allowNegative
+                  limitAmount, // negativeLimit
+                );
+              }
             } else if (order.status === 'accepted') {
               // If order was only accepted (not completed), refund the commission
               const orderSettings = await this.getOrCreateOrderSettings();
@@ -2378,8 +2368,6 @@ export class OrderService {
       completeTime: new Date(),
     };
     const newOrder = await this.updateOrder(orderId, payload);
-
-    await this.handleOrderCompletion(newOrder);
 
     try {
       if (newOrder.user && newOrder.driver) {

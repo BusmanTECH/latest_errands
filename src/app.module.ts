@@ -44,6 +44,7 @@ import { PushToken } from './notification/entities/push-token.entity';
 import { RatingsModule } from './ratings/ratings.module';
 import { Rating } from './ratings/entities/rating.entity';
 import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
+import { BankInformation } from './wallet/entities/bank-information.entity';
 
 
 
@@ -88,6 +89,7 @@ import { WithdrawalRequest } from './wallet/entities/withdrawal-request.entity';
           PushToken,
           Rating,
           WithdrawalRequest,
+          BankInformation,
         ],
         synchronize: true,
         

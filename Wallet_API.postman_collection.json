@@ -1,0 +1,407 @@
+{
+	"info": {
+		"_postman_id": "wallet-api-collection",
+		"name": "Wallet API",
+		"description": "Complete API collection for Wallet management including bank information and withdrawal requests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{auth_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string",
+			"description": "JWT authentication token"
+		}
+	],
+	"item": [
+		{
+			"name": "Wallet",
+			"item": [
+				{
+					"name": "Get Wallet",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet",
+							"host": ["{{base_url}}"],
+							"path": ["wallet"]
+						},
+						"description": "Get driver wallet information including balance, currency, and limit amounts"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Wallet Balance",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/balance",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "balance"]
+						},
+						"description": "Get just the wallet balance as a number"
+					},
+					"response": []
+				},
+				{
+					"name": "Fund Wallet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 5000.00,\n  \"currency\": \"NGN\",\n  \"callbackUrl\": \"https://yourapp.com/payment/callback\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/fund",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "fund"]
+						},
+						"description": "Initialize wallet funding via Paystack. Returns authorization URL to complete payment."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Bank Information",
+			"item": [
+				{
+					"name": "Add/Update Bank Information",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountName\": \"John Doe\",\n  \"accountNumber\": \"1234567890\",\n  \"bankName\": \"Access Bank\",\n  \"bankCode\": \"044\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/bank-information",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "bank-information"]
+						},
+						"description": "Create or update bank information. Required before creating withdrawal requests."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bank Information",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/bank-information",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "bank-information"]
+						},
+						"description": "Get the authenticated driver's bank information"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Bank Information",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountName\": \"Jane Doe\",\n  \"accountNumber\": \"0987654321\",\n  \"bankName\": \"GTBank\",\n  \"bankCode\": \"058\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/bank-information",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "bank-information"]
+						},
+						"description": "Update existing bank information. All fields are optional."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Bank Information",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/bank-information",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "bank-information"]
+						},
+						"description": "Delete bank information"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Withdrawals",
+			"item": [
+				{
+					"name": "Create Withdrawal Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 5000.00,\n  \"narration\": \"Withdrawal for personal use\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/withdraw",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "withdraw"]
+						},
+						"description": "Create a withdrawal request. Requires bank information to be set first. Needs admin approval."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Withdrawals",
+			"item": [
+				{
+					"name": "Get All Withdrawals",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/admin/withdrawals?page=1&pageSize=20&status=pending&userId=",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "admin", "withdrawals"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "pageSize",
+									"value": "20",
+									"description": "Items per page"
+								},
+								{
+									"key": "status",
+									"value": "pending",
+									"description": "Filter by status: pending, approved, rejected"
+								},
+								{
+									"key": "userId",
+									"value": "",
+									"description": "Filter by user ID",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all withdrawal requests with optional filtering (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Withdrawal by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/wallet/admin/withdrawals/:id",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "admin", "withdrawals", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "withdrawal-request-uuid",
+									"description": "Withdrawal request ID"
+								}
+							]
+						},
+						"description": "Get a specific withdrawal request by ID (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Withdrawal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"withdrawalRequestId\": \"withdrawal-request-uuid\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/admin/withdrawals/approve",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "admin", "withdrawals", "approve"]
+						},
+						"description": "Approve a withdrawal request. This will debit the user's wallet immediately. (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Withdrawal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"withdrawalRequestId\": \"withdrawal-request-uuid\",\n  \"rejectionReason\": \"Insufficient documentation provided\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/wallet/admin/withdrawals/reject",
+							"host": ["{{base_url}}"],
+							"path": ["wallet", "admin", "withdrawals", "reject"]
+						},
+						"description": "Reject a withdrawal request with a reason. Wallet balance remains unchanged. (Admin only)"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

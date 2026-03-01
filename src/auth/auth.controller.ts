@@ -49,7 +49,6 @@ export class AuthController {
     private readonly jwtService: JwtService,
   ) {}
 
-  
   @Post('signup/user')
   async signupUser(@Res() res, @Body() dto: SignupUserDto): Promise<any> {
     console.log('createUserDto', dto);
@@ -104,7 +103,6 @@ export class AuthController {
     }
   }
 
-  
   @Get('verify/email')
   async verifyEmailOtp(@Res() res, @Query('otp') otp: string) {
     const { accessToken, user } = await this.authService.verifyEmailOtp(otp);
@@ -128,7 +126,6 @@ export class AuthController {
     });
   }
 
-  
   @Post('forgot-password')
   async forgotPassword(@Res() res, @Body() body: { email: string }) {
     await this.authService.forgotPassword(body.email);
@@ -177,7 +174,7 @@ export class AuthController {
         await this.authService.login(loginAuthDto);
 
       if (user?.role != loginAuthDto?.role) {
-        throw new UnauthorizedException('Invalid role for this account');
+        throw new UnauthorizedException('Invalid Credentials');
       }
       const safeUser = {
         id: user?.id,
@@ -206,11 +203,9 @@ export class AuthController {
         },
       });
     } catch (error) {
-      
       const errorMessage =
         error?.message || error?.response?.message || 'Authentication failed';
 
-      
       const isUnverifiedError =
         errorMessage &&
         (errorMessage.includes('not verified') ||
@@ -239,8 +234,6 @@ export class AuthController {
     });
   }
 
-  
-
   @Get('health')
   healthCheck(): string {
     return 'OK';
@@ -265,7 +258,7 @@ export class AuthController {
   }
 
   private static imageUploadOptions = {
-    limits: { fileSize: 5 * 1024 * 1024 }, 
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, callback) => {
       const allowed = ['image/jpeg', 'image/png', 'image/gif'];
       if (!allowed.includes(file.mimetype)) {
@@ -278,7 +271,6 @@ export class AuthController {
     },
   };
 
-  
   @Post('profile_img')
   async deprecatedProfileImg(@Res() res, @Body() body: { image: string }) {
     return res.status(HttpStatus.OK).json({

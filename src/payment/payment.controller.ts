@@ -222,34 +222,18 @@ export class PaymentController {
       }
 
       if (data.metadata?.orderId) {
-        
+        // Handle order payment
         if (data.metadata.orderId) {
           await this.handleOrderPayment(
-            333,
+            verifyPayment.data,
             data.metadata.orderId,
             data.reference,
           );
         }
 
-        const amountInNaira = 3000 / 100;
-
-        
-        if (data.metadata.walletFunding && data.metadata.userId) {
-          try {
-            await this.walletService.creditWallet(
-              data.metadata.userId,
-              amountInNaira,
-              'Wallet funding via Paystack',
-            );
-          } catch (error) {
-            console.error('Error funding wallet:', error);
-          }
-        }
-
-        
+        // Handle card authorization for orders
         if (data.metadata.purpose === 'card_authorization') {
           try {
-            
             await this.cardService.handleCardAuthorizationCallback(
               data.reference,
               {
@@ -261,6 +245,30 @@ export class PaymentController {
           } catch (error) {
             console.error('Error processing card authorization:', error);
           }
+        }
+      }
+
+      // Handle wallet funding (independent of orderId)
+      if (data.metadata?.walletFunding && data.metadata?.userId) {
+        try {
+          const amountInNaira = data.amount / 100;
+          await this.walletService.creditWallet(
+            data.metadata.userId,
+            amountInNaira,
+            'Wallet funding via Paystack',
+          );
+
+          await this.transactionService.createTransaction({
+            userId: data.metadata.userId,
+            type: TransactionType.CREDIT,
+            amount: amountInNaira,
+            currency: 'NGN',
+            narration: 'Wallet funding via Paystack',
+            status: TransactionStatus.SUCCESSFUL,
+            reference: `TXN-${data.reference}`,
+          });
+        } catch (error) {
+          console.error('Error funding wallet:', error);
         }
       }
 

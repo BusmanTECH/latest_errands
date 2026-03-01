@@ -1,4 +1,3 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -17,7 +16,7 @@ export class Wallet {
 
   @Column({
     type: 'decimal',
-    precision: 12,
+    precision: 15,
     scale: 2,
     default: 0,
     nullable: false,
@@ -41,4 +40,3 @@ export class Wallet {
     Object.assign(this, wallet);
   }
 }
-

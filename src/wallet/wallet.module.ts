@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { User } from '../auth/entities/user.entity';
 import { WithdrawalRequest } from './entities/withdrawal-request.entity';
+import { BankInformation } from './entities/bank-information.entity';
 import { WalletService } from './wallet.service';
 import { WalletController } from './wallet.controller';
 import { PaymentModule } from '../payment/payment.module';
@@ -13,7 +14,7 @@ import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Wallet, User, WithdrawalRequest]),
+    TypeOrmModule.forFeature([Wallet, User, WithdrawalRequest, BankInformation]),
     forwardRef(() => PaymentModule),
     NotificationModule,
     MailModule,

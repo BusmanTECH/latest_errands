@@ -4,6 +4,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,11 +15,17 @@ import {
   WithdrawalRequest,
   WithdrawalStatus,
 } from './entities/withdrawal-request.entity';
+import { BankInformation } from './entities/bank-information.entity';
 import { TransactionService } from '../transaction/transaction.service';
 import {
   TransactionType,
   TransactionStatus,
 } from '../transaction/entities/transaction.entity';
+import { PaymentService } from '../payment/payment.service';
+import {
+  CreateBankInformationDto,
+  UpdateBankInformationDto,
+} from './dto/bank-information.dto';
 
 @Injectable()
 export class WalletService {
@@ -28,7 +36,11 @@ export class WalletService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(WithdrawalRequest)
     private readonly withdrawalRequestRepo: Repository<WithdrawalRequest>,
+    @InjectRepository(BankInformation)
+    private readonly bankInformationRepo: Repository<BankInformation>,
     private readonly transactionService: TransactionService,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
   ) {}
 
   async createWallet(userId: string): Promise<Wallet> {
@@ -60,7 +72,9 @@ export class WalletService {
     return savedWallet;
   }
 
-  async getWallet(userId: string): Promise<Wallet> {
+  async getWallet(
+    userId: string,
+  ): Promise<Wallet & { ctrlQ: number; limitAmount: number }> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
     if (user.role !== UserRole.RIDER) {
@@ -76,7 +90,13 @@ export class WalletService {
       wallet = await this.createWallet(userId);
     }
 
-    return wallet;
+    const limit = await this.paymentService.getBalanceLimit();
+
+    return {
+      ...wallet,
+      ctrlQ: limit,
+      limitAmount: limit,
+    } as Wallet & { ctrlQ: number; limitAmount: number };
   }
 
   async getWalletBalance(userId: string): Promise<number> {
@@ -144,6 +164,17 @@ export class WalletService {
   ): Promise<WithdrawalRequest> {
     if (amount <= 0) {
       throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    // Check if bank information exists
+    const bankInfo = await this.bankInformationRepo.findOne({
+      where: { userId },
+    });
+
+    if (!bankInfo) {
+      throw new BadRequestException(
+        'Bank information is required before creating a withdrawal request. Please add your bank details first.',
+      );
     }
 
     const wallet = await this.getWallet(userId);
@@ -420,5 +451,77 @@ export class WalletService {
     return await this.userRepo.findOne({
       where: { id: userId },
     });
+  }
+
+  async createOrUpdateBankInformation(
+    userId: string,
+    dto: CreateBankInformationDto,
+  ): Promise<BankInformation> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role !== UserRole.RIDER) {
+      throw new ForbiddenException(
+        'Bank information is only available for drivers',
+      );
+    }
+
+    const existingBankInfo = await this.bankInformationRepo.findOne({
+      where: { userId },
+    });
+
+    if (existingBankInfo) {
+      // Update existing bank information
+      Object.assign(existingBankInfo, dto);
+      return await this.bankInformationRepo.save(existingBankInfo);
+    } else {
+      // Create new bank information
+      const bankInfo = this.bankInformationRepo.create({
+        userId,
+        ...dto,
+      });
+      return await this.bankInformationRepo.save(bankInfo);
+    }
+  }
+
+  async getBankInformation(userId: string): Promise<BankInformation> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.role !== UserRole.RIDER) {
+      throw new ForbiddenException(
+        'Bank information is only available for drivers',
+      );
+    }
+
+    const bankInfo = await this.bankInformationRepo.findOne({
+      where: { userId },
+      relations: ['user'],
+    });
+
+    if (!bankInfo) {
+      throw new NotFoundException('Bank information not found');
+    }
+
+    return bankInfo;
+  }
+
+  async updateBankInformation(
+    userId: string,
+    dto: UpdateBankInformationDto,
+  ): Promise<BankInformation> {
+    const bankInfo = await this.getBankInformation(userId);
+    Object.assign(bankInfo, dto);
+    return await this.bankInformationRepo.save(bankInfo);
+  }
+
+  async deleteBankInformation(userId: string): Promise<void> {
+    const bankInfo = await this.bankInformationRepo.findOne({
+      where: { userId },
+    });
+
+    if (!bankInfo) {
+      throw new NotFoundException('Bank information not found');
+    }
+
+    await this.bankInformationRepo.remove(bankInfo);
   }
 }

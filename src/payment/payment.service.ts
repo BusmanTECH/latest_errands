@@ -48,13 +48,11 @@ export class PaymentService {
   async createTransaction(
     payload: Partial<PaymentTransaction>,
   ): Promise<PaymentTransaction> {
-    
     let reference = payload.reference;
     if (!reference) {
       reference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
     }
 
-    
     let attempts = 0;
     const maxAttempts = 5;
     while (attempts < maxAttempts) {
@@ -63,10 +61,9 @@ export class PaymentService {
       });
 
       if (!existing) {
-        break; 
+        break;
       }
 
-      
       reference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}-${attempts}`;
       attempts++;
     }
@@ -82,7 +79,6 @@ export class PaymentService {
       reference,
     });
 
-    
     if (payload.user) {
       const user = await this.userRepo.findOne({
         where: {
@@ -107,13 +103,11 @@ export class PaymentService {
     try {
       return await this.transactionRepo.save(transaction);
     } catch (error) {
-      
       if (
         error.message?.includes('duplicate key') ||
         error.message?.includes('unique constraint') ||
-        error.code === '23505' 
+        error.code === '23505'
       ) {
-        
         const newReference = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}-RETRY`;
         transaction.reference = newReference;
         try {
@@ -159,7 +153,6 @@ export class PaymentService {
       );
     }
 
-    
     if (rest.type) {
       queryBuilder.andWhere('transaction.type = :type', { type: rest.type });
     }
@@ -196,8 +189,6 @@ export class PaymentService {
     try {
       const transaction = await this.transactionRepo.findOne({ where: query });
       if (!transaction) {
-        
-        
         try {
           const newTransaction = this.transactionRepo.create({
             reference: query.reference,
@@ -262,7 +253,6 @@ export class PaymentService {
     const limit = 20;
     const skip = (page - 1) * limit;
 
-    
     const sanitizedFilters: Record<string, any> = {};
     Object.entries(filters || {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -278,7 +268,6 @@ export class PaymentService {
       .leftJoinAndSelect('transaction.user', 'user')
       .leftJoinAndSelect('transaction.driver', 'driver');
 
-    
     if (sanitizedFilters.type) {
       queryBuilder.andWhere('transaction.type = :type', {
         type: sanitizedFilters.type,
@@ -290,7 +279,6 @@ export class PaymentService {
       });
     }
 
-    
     if (searchKeyword) {
       queryBuilder.andWhere(
         '(transaction.type ILIKE :keyword OR transaction.reference ILIKE :keyword OR transaction.status ILIKE :keyword)',
@@ -317,16 +305,13 @@ export class PaymentService {
     amount: number,
     callbackUrl?: string,
   ): Promise<{ authorizationUrl: string; reference: string }> {
-    
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    
     const reference = this.paystackService.generateReference('WALLET');
 
-    
     const paystackResponse = await this.paystackService.initializeTransaction({
       email: user.email,
       amount: amount,
@@ -341,7 +326,6 @@ export class PaymentService {
       },
     });
 
-    
     const paymentTransaction = await this.createTransaction({
       user: user,
       amount: amount,
@@ -363,7 +347,7 @@ export class PaymentService {
     if (!settings) {
       throw new BadRequestException('Pricing settings not configured');
     }
-    return Number(settings.orderPercentage) || 10; 
+    return Number(settings.orderPercentage) || 10;
   }
 
   async getBalanceLimit(): Promise<number> {
@@ -371,7 +355,7 @@ export class PaymentService {
     if (!settings) {
       throw new BadRequestException('Pricing settings not configured');
     }
-    return Number(settings.limitAmount) || -1000; 
+    return Number(settings.limitAmount) || -1000;
   }
 
   async calculatePlatformFee(orderAmount: number): Promise<number> {
@@ -385,13 +369,12 @@ export class PaymentService {
   ): Promise<void> {
     const limitAmount = await this.getBalanceLimit();
 
-    
     await this.walletService.debitWallet(
       riderId,
       feeAmount,
       'Platform fee deduction',
-      true, 
-      limitAmount, 
+      true,
+      limitAmount,
     );
   }
 
@@ -410,19 +393,16 @@ export class PaymentService {
     riderId: string,
     cardId?: string,
   ): Promise<{ success: boolean; reference: string }> {
-    
     const user = await this.userRepo.findOne({
       where: { id: userId },
       relations: ['card'],
     });
     if (!user) throw new NotFoundException('User not found');
 
-    
     let card: Card | null = null;
     if (cardId) {
       card = await this.cardRepo.findOne({ where: { id: cardId } });
     } else {
-      
       card = user.card || null;
     }
 
@@ -432,18 +412,15 @@ export class PaymentService {
       );
     }
 
-    
     if (!card.authorization_code) {
       throw new BadRequestException(
         'Card authorization not available. Please re-add your card.',
       );
     }
 
-    
     const reference = this.paystackService.generateReference('ORDER');
 
     try {
-      
       const chargeResponse = await this.paystackService.chargeAuthorization({
         email: user.email,
         amount: orderAmount,
@@ -463,22 +440,17 @@ export class PaymentService {
         );
       }
 
-      
       const rider = await this.userRepo.findOne({
         where: { id: riderId, role: UserRole.RIDER },
       });
       if (!rider) throw new NotFoundException('Rider not found');
 
-      
       const platformFee = await this.calculatePlatformFee(orderAmount);
 
-      
       await this.deductPlatformFeeFromRider(riderId, platformFee);
 
-      
       await this.creditRiderEarnings(riderId, orderAmount);
 
-      
       await this.createTransaction({
         user: user,
         driver: rider,
@@ -493,7 +465,6 @@ export class PaymentService {
         verifiedAt: new Date(),
       });
 
-      
       await this.transactionService.createTransaction({
         userId: riderId,
         orderId: orderId,
@@ -505,7 +476,6 @@ export class PaymentService {
         reference: `TXN-${reference}`,
       });
 
-      
       await this.transactionService.createTransaction({
         userId: riderId,
         orderId: orderId,
@@ -517,7 +487,6 @@ export class PaymentService {
         reference: `TXN-FEE-${reference}`,
       });
 
-      
       await this.driverService.updateDriverStats(riderId, orderAmount);
 
       return { success: true, reference };
@@ -533,14 +502,12 @@ export class PaymentService {
     orderAmount: number,
     orderId: string,
   ): Promise<{ success: boolean; reference: string }> {
-    
     const user = await this.userRepo.findOne({
       where: { id: userId },
       relations: ['card'],
     });
     if (!user) throw new NotFoundException('User not found');
 
-    
     if (!user.card || !user.card.authorization_code) {
       throw new BadRequestException(
         'Please add a payment card before placing order',
@@ -549,11 +516,9 @@ export class PaymentService {
 
     const card = user.card;
 
-    
     let reference = this.paystackService.generateReference('ORDER');
 
     try {
-      
       const chargeResponse = await this.paystackService.chargeAuthorization({
         email: user.email,
         amount: orderAmount,
@@ -567,7 +532,6 @@ export class PaymentService {
       });
 
       if (chargeResponse.data?.status !== 'success') {
-        
         const errorMessage =
           chargeResponse.data?.gateway_response || 'Card charge failed';
         if (
@@ -583,7 +547,6 @@ export class PaymentService {
         );
       }
 
-      
       let paymentTransaction = await this.transactionRepo.findOne({
         where: {
           orderId: orderId,
@@ -592,13 +555,11 @@ export class PaymentService {
       });
 
       if (!paymentTransaction) {
-        
-        
         try {
           paymentTransaction = await this.createTransaction({
             user: user,
             amount: orderAmount,
-            reference: reference, 
+            reference: reference,
             orderId: orderId,
             type: PaymentTransactionType.DEBIT,
             status: PaymentTransactionStatus.SUCCESSFUL,
@@ -608,34 +569,29 @@ export class PaymentService {
             verifiedAt: new Date(),
           });
         } catch (error) {
-          
           if (
             error.message?.includes('duplicate key') ||
             error.message?.includes('unique constraint') ||
             error.code === '23505'
           ) {
-            
             paymentTransaction = await this.transactionRepo.findOne({
               where: { orderId: orderId },
             });
             if (!paymentTransaction) {
-              
               throw new BadRequestException(
                 'Failed to create payment transaction. Please try again.',
               );
             }
-            
+
             reference = paymentTransaction.reference;
           } else {
             throw error;
           }
         }
       } else {
-        
         reference = paymentTransaction.reference;
       }
 
-      
       const existingTxnRef = `TXN-${paymentTransaction.reference}`;
       const existingTxnByRef =
         await this.transactionService.getTransactionByReference(existingTxnRef);
@@ -653,7 +609,6 @@ export class PaymentService {
             reference: existingTxnRef,
           });
         } catch (error) {
-          
           if (
             !error.message?.includes('duplicate key') &&
             !error.message?.includes('unique constraint')
@@ -680,13 +635,11 @@ export class PaymentService {
     orderId: string,
     riderId: string,
   ): Promise<{ success: boolean }> {
-    
     const rider = await this.userRepo.findOne({
       where: { id: riderId, role: UserRole.RIDER },
     });
     if (!rider) throw new NotFoundException('Rider not found');
 
-    
     const pricingSettings = await this.pricingService.getCurrentSettings();
     if (!pricingSettings) {
       throw new BadRequestException('Pricing settings not configured');
@@ -695,7 +648,6 @@ export class PaymentService {
     const orderPercentage = Number(pricingSettings.orderPercentage) || 10;
     const commission = (orderAmount * orderPercentage) / 100;
 
-    
     const walletBalance = await this.walletService.getWalletBalance(riderId);
 
     if (walletBalance < commission) {
@@ -704,10 +656,8 @@ export class PaymentService {
       );
     }
 
-    
     await this.deductPlatformFeeFromRider(riderId, commission);
 
-    
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -727,25 +677,22 @@ export class PaymentService {
       verifiedAt: new Date(),
     });
 
-    
     await this.transactionService.createTransaction({
       userId: riderId,
       orderId: orderId,
       type: TransactionType.DEBIT,
       amount: commission,
       currency: 'NGN',
-      narration: `Platform commission deduction for order ${orderId}`,
+      narration: `Platform commission deduction for order `,
       status: TransactionStatus.SUCCESSFUL,
       reference: `TXN-${reference}`,
     });
 
-    
     await this.driverService.updateDriverStats(riderId, orderAmount);
 
     return { success: true };
   }
 
-  
   verifyPaystackSignature(body: any, signature: string): boolean {
     try {
       const crypto = require('crypto');
@@ -760,16 +707,12 @@ export class PaymentService {
         return false;
       }
 
-      
       let bodyString: string;
       if (typeof body === 'string') {
-        
         bodyString = body;
       } else if (Buffer.isBuffer(body)) {
-        
         bodyString = body.toString('utf8');
       } else if (body != null) {
-        
         bodyString = JSON.stringify(body);
       } else {
         return false;
@@ -789,7 +732,6 @@ export class PaymentService {
     }
   }
 
-  
   async handleWebhookEvent(
     eventData: any,
   ): Promise<{ success: boolean; message: string; processedBy?: string }> {
@@ -805,11 +747,9 @@ export class PaymentService {
         `Processing webhook event: ${event} for reference: ${data.reference}`,
       );
 
-      
       const metadata = data.metadata || {};
       const purpose = metadata.purpose;
 
-      
       switch (purpose) {
         case 'card_authorization':
           return await this.handleCardAuthorizationWebhook(data);
@@ -818,9 +758,7 @@ export class PaymentService {
           return await this.handleOrderPaymentWebhook(data, event);
 
         default:
-          
           if (event === 'charge.success' || event === 'transaction.success') {
-            
             if (purpose) {
               this.logger.warn(
                 `Unknown purpose: ${purpose}, handling as general payment`,
@@ -843,7 +781,6 @@ export class PaymentService {
     }
   }
 
-  
   private async handleCardAuthorizationWebhook(
     data: any,
   ): Promise<{ success: boolean; message: string; processedBy: string }> {
@@ -858,7 +795,6 @@ export class PaymentService {
         };
       }
 
-      
       const result =
         await this.cardService.handleCardAuthorizationCallback(reference);
 
@@ -885,7 +821,6 @@ export class PaymentService {
     }
   }
 
-  
   private async handleOrderPaymentWebhook(
     data: any,
     event: string,
@@ -893,7 +828,6 @@ export class PaymentService {
     try {
       const reference = data.reference;
 
-      
       const existingTransaction =
         await this.findTransactionByReference(reference);
 
@@ -906,7 +840,6 @@ export class PaymentService {
         };
       }
 
-      
       const verifyPayment =
         await this.paystackService.verifyTransaction(reference);
 
@@ -918,7 +851,6 @@ export class PaymentService {
         };
       }
 
-      
       const updateTransaction = await this.updateTransaction(
         { reference },
         {
@@ -936,7 +868,6 @@ export class PaymentService {
         };
       }
 
-      
       if (verifyPayment.data.metadata) {
         await this.handlePaymentConfirmation(verifyPayment.data, reference);
         this.logger.log(`Order payment processed for reference: ${reference}`);
@@ -957,7 +888,6 @@ export class PaymentService {
     }
   }
 
-  
   private async handleGeneralPaymentWebhook(
     data: any,
     event: string,
@@ -965,7 +895,6 @@ export class PaymentService {
     try {
       const reference = data.reference;
 
-      
       const existingTransaction =
         await this.findTransactionByReference(reference);
 
@@ -984,7 +913,6 @@ export class PaymentService {
               },
             );
 
-            
             if (verifyPayment.data.metadata) {
               await this.handlePaymentConfirmation(
                 verifyPayment.data,
@@ -1001,7 +929,6 @@ export class PaymentService {
         };
       }
 
-      
       this.logger.log(
         `General payment webhook received for reference: ${reference} but no transaction found`,
       );
@@ -1021,7 +948,6 @@ export class PaymentService {
     }
   }
 
-  
   private async handlePaymentConfirmation(
     paymentData: any,
     reference: string,
@@ -1030,11 +956,8 @@ export class PaymentService {
     const metadata = paymentData.metadata;
     const amountInNaira = paymentData.amount / 100;
 
-    
     if (metadata?.walletFunding && metadata?.userId) {
       try {
-        
-
         await this.walletService.creditWallet(
           metadata.userId,
           amountInNaira,
@@ -1051,8 +974,6 @@ export class PaymentService {
           reference: `TXN-${reference}`,
         });
       } catch (error) {
-        
-        
         console.error(
           '[PAYMENT_SERVICE] Transaction record creation failed:',
           error.message,
@@ -1060,11 +981,8 @@ export class PaymentService {
       }
     }
 
-    
     if (metadata?.orderId && metadata?.userId) {
       try {
-        
-
         await this.transactionService.createTransaction({
           userId: metadata.userId,
           orderId: metadata.orderId,
@@ -1081,8 +999,7 @@ export class PaymentService {
           error,
         );
         console.error('[PAYMENT_SERVICE] Error stack:', error.stack);
-        
-        
+
         console.error(
           '[PAYMENT_SERVICE] Transaction record creation failed:',
           error.message,
@@ -1090,7 +1007,6 @@ export class PaymentService {
       }
     }
 
-    
     if (!metadata?.walletFunding && !metadata?.orderId) {
       console.log(
         '[PAYMENT_SERVICE] No wallet funding or order payment metadata found',
